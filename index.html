@@ -10,11 +10,40 @@
   #ui span { background:rgba(255,255,255,0.1); padding:4px 12px; border-radius:20px; }
   #diffLabel { font-weight:bold; font-size:14px; padding:4px 14px; border-radius:20px; }
   canvas { border:3px solid rgba(255,255,255,0.15); border-radius:8px; display:block; }
-  #overlay { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.82); color:#fff; z-index:10; }
+  #overlay { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.92); color:#fff; z-index:10; }
   #overlay h1 { font-size:54px; margin-bottom:10px; text-shadow:0 0 24px #ff6b6b; }
   #overlay p  { font-size:16px; color:#ccc; margin-bottom:6px; text-align:center; line-height:1.7; }
   #overlay button { margin-top:20px; padding:13px 42px; font-size:21px; background:linear-gradient(135deg,#ff6b6b,#feca57); border:none; border-radius:30px; cursor:pointer; font-weight:bold; color:#fff; transition:transform .1s; }
   #overlay button:hover { transform:scale(1.07); }
+  /* ── MENU ── */
+  #menu { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:linear-gradient(160deg,#0d0d2e,#1a0033,#0d1a2e); color:#fff; z-index:11; }
+  #menu .logo { font-size:52px; font-weight:900; letter-spacing:4px; background:linear-gradient(135deg,#ff6b6b,#feca57,#ff6b6b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-shadow:none; margin-bottom:4px; }
+  #menu .sub  { font-size:13px; color:#888; letter-spacing:2px; margin-bottom:22px; }
+  #menu .tabs { display:flex; gap:4px; margin-bottom:18px; background:rgba(255,255,255,0.05); padding:4px; border-radius:30px; }
+  #menu .tab  { padding:8px 22px; border-radius:26px; font-size:13px; font-weight:bold; cursor:pointer; border:none; background:transparent; color:#aaa; transition:all .2s; letter-spacing:.5px; }
+  #menu .tab.active { background:linear-gradient(135deg,#7b2ff7,#ff6b6b); color:#fff; }
+  #menu .tab:hover:not(.active) { color:#fff; background:rgba(255,255,255,0.08); }
+  #menu .panel { width:420px; min-height:260px; display:none; flex-direction:column; align-items:center; }
+  #menu .panel.active { display:flex; }
+  #menu input[type=text] { width:260px; padding:11px 18px; font-size:15px; border-radius:24px; border:2px solid rgba(254,202,87,0.5); background:rgba(255,255,255,0.07); color:#fff; outline:none; text-align:center; margin-bottom:14px; transition:border-color .2s; }
+  #menu input[type=text]:focus { border-color:#feca57; }
+  #menu .play-btn { padding:14px 52px; font-size:20px; background:linear-gradient(135deg,#ff6b6b,#feca57); border:none; border-radius:30px; cursor:pointer; font-weight:bold; color:#fff; transition:transform .15s,box-shadow .15s; box-shadow:0 4px 20px rgba(255,107,107,0.4); }
+  #menu .play-btn:hover { transform:scale(1.06); box-shadow:0 6px 28px rgba(255,107,107,0.6); }
+  #menu .hint { font-size:11px; color:#555; margin-top:10px; }
+  #menu .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; margin-bottom:12px; }
+  #menu .info-card { background:rgba(255,255,255,0.05); border-radius:10px; padding:10px 14px; font-size:12px; color:#bbb; border:1px solid rgba(255,255,255,0.07); }
+  #menu .info-card b { color:#feca57; display:block; margin-bottom:4px; font-size:13px; }
+  #menu .lb-list { width:100%; font-size:12px; max-height:230px; overflow-y:auto; }
+  #menu .lb-row { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:8px; margin-bottom:3px; background:rgba(255,255,255,0.04); }
+  #menu .lb-row:nth-child(1) { background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.2); }
+  #menu .lb-row:nth-child(2) { background:rgba(192,192,192,0.08); }
+  #menu .lb-row:nth-child(3) { background:rgba(205,127,50,0.08); }
+  #menu .aura-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; max-height:230px; overflow-y:auto; }
+  #menu .aura-card { background:rgba(255,255,255,0.05); border-radius:10px; padding:10px 12px; font-size:12px; border:1px solid rgba(255,255,255,0.07); display:flex; justify-content:space-between; align-items:center; }
+  #menu .aura-card.locked { opacity:.35; }
+  #menu .aura-card.equipped { border-color:#feca57; background:rgba(254,202,87,0.1); }
+  #menu .equip-btn { font-size:10px; padding:3px 9px; border-radius:10px; border:none; cursor:pointer; background:#333; color:#fff; }
+  #menu .equip-btn.on { background:#feca57; color:#000; }
   #controls { color:#555; font-size:12px; margin-top:7px; }
   #gameRow { display:flex; gap:14px; align-items:flex-start; }
   #stats { width:180px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:12px 14px; color:#fff; font-size:13px; flex-shrink:0; margin-top:0; }
@@ -59,17 +88,60 @@
 </div>
 <div id="controls">← → / A D move &nbsp;·&nbsp; Space / W / ↑ jump &nbsp;·&nbsp; Double jump &nbsp;·&nbsp; 🟠 Crumble &nbsp;·&nbsp; 🔴 Bounce &nbsp;·&nbsp; 🟦 Elevator</div>
 
-<div id="overlay">
-  <h1>ROBO-RALLY</h1>
-  <p>30 levels · Easy → Extreme Demon<br>
-     Reach the flag. Don't touch lava!<br><br>
-     🟣 Moving &nbsp; 🔴 Bounce &nbsp; 🟦 Elevator &nbsp; 🟠 Crumble</p>
-  <div style="margin-top:14px;display:flex;gap:8px;align-items:center;">
-    <input id="usernameInput" type="text" placeholder="Enter your username..."
-      style="padding:10px 16px;font-size:16px;border-radius:20px;border:2px solid #feca57;
-             background:rgba(255,255,255,0.1);color:#fff;outline:none;width:200px;text-align:center;">
+<!-- WIN/DEATH overlay (hidden by default, shown by showOverlay()) -->
+<div id="overlay" style="display:none"></div>
+
+<!-- MAIN MENU -->
+<div id="menu">
+  <div class="logo">ROBO-RALLY</div>
+  <div class="sub">30 LEVELS · EASY → EXTREME DEMON</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="menuTab('play')">▶ Play</button>
+    <button class="tab" onclick="menuTab('guide')">📖 Guide</button>
+    <button class="tab" onclick="menuTab('auras')">✨ Auras</button>
+    <button class="tab" onclick="menuTab('lb')">🏆 Leaderboard</button>
   </div>
-  <button id="startBtn">▶ Play</button>
+
+  <!-- PLAY TAB -->
+  <div class="panel active" id="tab-play">
+    <input id="usernameInput" type="text" placeholder="Enter your username...">
+    <button class="play-btn" id="startBtn">▶ Play</button>
+    <div class="hint">Press Enter to start</div>
+    <div style="margin-top:18px;display:flex;gap:10px;font-size:12px;color:#666;">
+      <span>← → move</span><span>Space jump</span><span>Double jump</span><span>BOB = fly</span>
+    </div>
+  </div>
+
+  <!-- GUIDE TAB -->
+  <div class="panel" id="tab-guide">
+    <div class="info-grid">
+      <div class="info-card"><b>🟦 Normal</b>Solid platform</div>
+      <div class="info-card"><b>🟣 Moving</b>Slides left/right</div>
+      <div class="info-card"><b>🔴 Bounce</b>Launches you up</div>
+      <div class="info-card"><b>🟠 Crumble</b>Breaks after ~1s</div>
+      <div class="info-card"><b>🟦 Elevator</b>Moves up/down</div>
+      <div class="info-card"><b>🟥 Lava</b>Instant death</div>
+    </div>
+    <div class="info-grid" style="margin-top:4px">
+      <div class="info-card"><b>🌀 Portal</b>Hidden secret — complete the dimension course for an aura</div>
+      <div class="info-card"><b>🎭 Decoy</b>Two orbs — one gives aura, one kills. Choose wisely</div>
+      <div class="info-card"><b>🔒 Secret Levels</b>Beat all 30 stages to unlock 5 bonus levels</div>
+      <div class="info-card"><b>🕹️ Cheat: BOB</b>Type B-O-B to toggle fly mode</div>
+    </div>
+  </div>
+
+  <!-- AURAS TAB -->
+  <div class="panel" id="tab-auras">
+    <div style="font-size:12px;color:#666;margin-bottom:10px;align-self:flex-start">Find hidden secrets in every level to unlock auras</div>
+    <div class="aura-grid" id="menuAuraGrid"></div>
+  </div>
+
+  <!-- LEADERBOARD TAB -->
+  <div class="panel" id="tab-lb">
+    <div class="lb-list" id="menuLbList"></div>
+    <button onclick="if(confirm('Clear leaderboard?')){localStorage.removeItem('roboRallyLB');renderMenuLb();}" style="margin-top:12px;font-size:11px;padding:5px 14px;border-radius:12px;border:1px solid #333;background:transparent;color:#555;cursor:pointer;">Clear</button>
+  </div>
 </div>
 
 <script>
@@ -684,7 +756,8 @@ function dimensionFail(){
 
 // ─── INPUT ────────────────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT') return; // let input fields type freely
+  if(e.target.tagName==='INPUT') return;
+  if(e.code==='Escape'){ if(gameState==='playing'||gameState==='dimension') openMenu(); return; }
   keys[e.code]=true;
   // cheat code: type BOB
   if(e.key&&e.key.length===1){
@@ -1148,7 +1221,11 @@ function renderLeaderboard(){
 function showOverlay(title,desc,btn){
   const ov=document.getElementById('overlay');
   ov.style.display='flex';
-  ov.innerHTML=`<h1>${title}</h1><p>${desc}</p><button id="startBtn">${btn}</button>`;
+  ov.innerHTML=`<h1>${title}</h1><p>${desc}</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+      <button id="startBtn" style="padding:13px 36px;font-size:19px;background:linear-gradient(135deg,#ff6b6b,#feca57);border:none;border-radius:30px;cursor:pointer;font-weight:bold;color:#fff;margin-top:20px">${btn}</button>
+      <button onclick="openMenu()" style="padding:13px 28px;font-size:19px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:30px;cursor:pointer;font-weight:bold;color:#fff;margin-top:20px">☰ Menu</button>
+    </div>`;
   document.getElementById('startBtn').onclick=()=>{ ov.style.display='none'; init(); gameState='playing'; };
 }
 
@@ -1201,20 +1278,69 @@ function loop(){
   requestAnimationFrame(loop);
 }
 
+// ─── MENU ────────────────────────────────────────────────────────────────────
+function menuTab(id){
+  document.querySelectorAll('#menu .tab').forEach((t,i)=>{
+    const ids=['play','guide','auras','lb'];
+    t.classList.toggle('active', ids[i]===id);
+  });
+  document.querySelectorAll('#menu .panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='auras') renderMenuAuras();
+  if(id==='lb')    renderMenuLb();
+}
+function renderMenuAuras(){
+  const grid=document.getElementById('menuAuraGrid');
+  if(!grid) return;
+  grid.innerHTML=AURAS.map(a=>{
+    const has=unlockedAuras.includes(a.id);
+    const on=activeAura===a.id;
+    return `<div class="aura-card ${!has?'locked':''} ${on?'equipped':''}">
+      <span>${a.name}</span>
+      ${has?`<button class="equip-btn ${on?'on':''}" onclick="activeAura='${a.id}';localStorage.setItem('roboActiveAura','${a.id}');renderMenuAuras();">${on?'ON':'USE'}</button>`:'🔒'}
+    </div>`;
+  }).join('');
+}
+function renderMenuLb(){
+  const lb=JSON.parse(localStorage.getItem('roboRallyLB')||'[]');
+  const medals=['🥇','🥈','🥉'];
+  const el=document.getElementById('menuLbList');
+  if(!el) return;
+  if(!lb.length){ el.innerHTML='<div style="color:#555;text-align:center;padding:20px">No runs yet — play to set a score!</div>'; return; }
+  let rank=1;
+  el.innerHTML=lb.map((e,i)=>{
+    if(i>0&&(e.deaths!==lb[i-1].deaths||e.auras!==lb[i-1].auras||e.ms!==lb[i-1].ms)) rank=i+1;
+    return `<div class="lb-row">
+      <span style="width:28px">${medals[rank-1]||'#'+rank}</span>
+      <span style="flex:1;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.name||'Anon'}</span>
+      <span style="color:#feca57;margin:0 6px">Lv${e.stage}</span>
+      <span style="color:#ff6b6b;margin:0 4px">${e.deaths}💀</span>
+      <span style="color:#7b2ff7;margin:0 4px">${e.auras||0}✨</span>
+      <span style="color:#aaa">${e.time}</span>
+    </div>`;
+  }).join('');
+}
+function openMenu(){
+  document.getElementById('menu').style.display='flex';
+  document.getElementById('overlay').style.display='none';
+  gameState='menu';
+  renderMenuAuras(); renderMenuLb();
+}
+function closeMenu(){
+  document.getElementById('menu').style.display='none';
+}
+
 // boot
 stage=0; camera={x:0}; gameState='menu'; initPlayer();
-renderLeaderboard();
-updateAuraUI();
-document.getElementById('startBtn').onclick=()=>{
-  const inp=document.getElementById('usernameInput');
-  if(inp){ const v=inp.value.trim(); if(v){ username=v; localStorage.setItem('roboUsername',v); } }
-  document.getElementById('overlay').style.display='none';
-  initAudio(); init(); gameState='playing';
-};
+renderLeaderboard(); updateAuraUI();
 // pre-fill saved username
 const _ui=document.getElementById('usernameInput');
 if(_ui&&username) _ui.value=username;
-// allow Enter key to start
+document.getElementById('startBtn').onclick=()=>{
+  const inp=document.getElementById('usernameInput');
+  if(inp){ const v=inp.value.trim(); if(v){ username=v; localStorage.setItem('roboUsername',v); } }
+  closeMenu(); initAudio(); init(); gameState='playing';
+};
 document.getElementById('usernameInput')?.addEventListener('keydown',e=>{ if(e.code==='Enter') document.getElementById('startBtn').click(); });
 loop();
 </script>
