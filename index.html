@@ -347,11 +347,32 @@ function initStage(s){
 }
 function init(){ deathCount=0; stage=0; gameState='playing'; initStage(0); }
 
+// ─── CHEAT CODE: BOB = fly mode ──────────────────────────────────────────────
+let cheatBuffer='', flyMode=false;
+document.addEventListener('keypress',e=>{
+  cheatBuffer=(cheatBuffer+e.key.toUpperCase()).slice(-3);
+  if(cheatBuffer==='BOB'){
+    flyMode=!flyMode;
+    showCheatMsg(flyMode?'✈️ FLY MODE ON — BOB':'🚫 FLY MODE OFF');
+  }
+});
+function showCheatMsg(txt){
+  let el=document.getElementById('cheatMsg');
+  if(!el){ el=document.createElement('div'); el.id='cheatMsg';
+    Object.assign(el.style,{position:'fixed',top:'14px',left:'50%',transform:'translateX(-50%)',
+      background:'rgba(0,0,0,.85)',color:'#ffd700',fontFamily:'Arial',fontWeight:'bold',
+      fontSize:'22px',padding:'10px 28px',borderRadius:'30px',zIndex:99,
+      border:'2px solid #ffd700',pointerEvents:'none',transition:'opacity .5s'}); document.body.appendChild(el); }
+  el.textContent=txt; el.style.opacity='1';
+  clearTimeout(el._t); el._t=setTimeout(()=>el.style.opacity='0',2200);
+}
+
 // ─── INPUT ────────────────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
   keys[e.code]=true;
   if((e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW')&&gameState==='playing'){
-    if(player.jumps<2){ player.vy=JUMP*(player.jumps===1?.82:1); player.jumps++; player.onGround=false; }
+    if(flyMode){ player.vy=-8; }
+    else if(player.jumps<2){ player.vy=JUMP*(player.jumps===1?.82:1); player.jumps++; player.onGround=false; }
   }
   e.preventDefault();
 });
@@ -385,7 +406,14 @@ function update(){
   if(keys['ArrowLeft']||keys['KeyA'])      player.vx=-SPEED;
   else if(keys['ArrowRight']||keys['KeyD']) player.vx=SPEED;
   else player.vx*=.75;
-  player.vy+=GRAVITY;
+  if(flyMode){
+    if(keys['ArrowUp']||keys['KeyW']||keys['Space']) player.vy=-6;
+    else if(keys['ArrowDown']||keys['KeyS'])          player.vy=6;
+    else player.vy*=.7;
+    player.onGround=false; player.jumps=0;
+  } else {
+    player.vy+=GRAVITY;
+  }
   player.x+=player.vx; player.y+=player.vy;
   if(!player.onGround) player.angle+=player.vx*.05; else player.angle*=.8;
   player.onGround=false;
