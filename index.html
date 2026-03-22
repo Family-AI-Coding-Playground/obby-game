@@ -362,6 +362,59 @@ const STAGES = [
   vm(2420,63,16,63,105,5.8), mov(2555,83,15,2555,65,6.2), fin(2668,63,140), lava() ]},
 ];
 
+// ─── SECRET LEVELS ─────────────────────────────────────────────────────────
+const SECRET_LEVELS = [
+{ name:'👻 The Void', speedMult:1, platOpacity:0.08, darkness:false,
+  bg:['#000000','#030003'],
+  finish:1100, cameraMax:1400, platforms:[
+  plat(0,420,120,26,'#1a1a1a'), plat(170,388,55,18,'#111'),
+  plat(278,355,50,18,'#111'), plat(382,322,48,18,'#111'),
+  plat(486,290,46,18,'#111'), plat(588,260,44,18,'#111'),
+  plat(690,230,42,18,'#111'), plat(790,200,40,18,'#111'),
+  plat(888,172,38,18,'#111'), plat(984,148,36,18,'#111'),
+  fin(1100,128,100), lava() ]},
+
+{ name:'🌈 Rainbow Rush', speedMult:2.4, platOpacity:1, darkness:false,
+  bg:['#0a001a','#001a0a'],
+  finish:1080, cameraMax:1380, platforms:[
+  plat(0,420,120,26,'#27ae60'), mov(158,388,48,158,90,2.5),
+  mov(274,355,44,274,85,-2.8), mov(388,322,42,388,80,2.6),
+  plat(502,295,56,18), mov(618,268,40,618,78,-2.9),
+  mov(730,238,38,730,75,2.8), mov(842,208,38,842,72,-2.6),
+  fin(1080,182,100), lava() ]},
+
+{ name:'🌑 Dark Matter', speedMult:1, platOpacity:1, darkness:true,
+  bg:['#000000','#010101'],
+  finish:1140, cameraMax:1440, platforms:[
+  plat(0,420,115,26,'#27ae60'), cru(152,388,55,'#553300'),
+  mov(268,356,42,268,80,3.5), vm(386,318,40,318,130,3.8),
+  bou(474,288,38), cru(552,168,38,'#553300'),
+  mov(654,192,40,654,75,-4.0), vm(795,162,38,162,130,4.2),
+  cru(938,188,38,'#553300'), fin(1140,162,100), lava() ]},
+
+{ name:'💎 Crystal Cave', speedMult:1, platOpacity:1, darkness:false,
+  bg:['#001133','#003366'],
+  finish:1280, cameraMax:1580, platforms:[
+  plat(0,420,110,26,'#27ae60'), plat(138,394,34,14,'#00ccff'),
+  mov(206,365,30,206,80,3.2), plat(286,335,32,14,'#00ccff'),
+  vm(354,305,30,305,120,3.5), plat(432,278,30,14,'#00ccff'),
+  mov(498,248,28,498,75,-3.8), plat(574,220,28,14,'#00ccff'),
+  vm(640,192,28,192,110,4.0), plat(716,166,26,14,'#00ccff'),
+  mov(780,140,26,780,70,4.2), plat(854,118,26,14,'#00ccff'),
+  fin(1280,98,100), lava() ]},
+
+{ name:'☠️ True Nightmare', speedMult:1, platOpacity:1, darkness:false,
+  bg:['#0a0000','#200000'],
+  finish:1480, cameraMax:1780, platforms:[
+  plat(0,420,105,26,'#27ae60'), mov(134,388,20,134,90,5.0),
+  cru(288,356,35), vm(400,323,18,323,145,4.5),
+  bou(478,290,22), mov(550,176,18,550,85,-5.3),
+  cru(712,150,16), vm(804,126,18,126,140,5.0),
+  mov(940,156,18,940,78,5.2), cru(1096,133,16),
+  bou(1178,153,20), vm(1253,48,18,48,125,5.5),
+  mov(1390,80,16,1390,72,-5.8), fin(1480,55,100), lava() ]},
+];
+
 // ─── PHYSICS ────────────────────────────────────────────────────────────────
 const GRAVITY=0.55, JUMP=-13, SPEED=4.5, BOUNCE=-18, CRUMBLE_T=52;
 
@@ -370,6 +423,7 @@ let player, camera, keys={}, deathCount=0, stage=0, gameState='menu', particles=
 let stageDeaths=[], startTime=0, stageStartTime=0, bestStage=0, totalTime=0;
 let dimState=null, savedDimReturn=null; // dimension state
 let aurasCollectedThisRun=0; // auras collected in current run
+let secretMode=false, secretStage=0, secretSpeedMult=1, secretPlatOpacity=1, secretDarkness=false;
 
 // ─── AURA SKINS ──────────────────────────────────────────────────────────────
 const AURAS = [
@@ -395,61 +449,61 @@ const _A=['fire','frost','shadow','toxic','galaxy','rainbow','gold','storm','sak
 // early=finish*0.3, middle=finish*0.55, late=finish*0.8
 const SECRET_ZONES = [
   // stage 0 — sacrifice — early (x=780*0.3=234), y=438
-  {stage:0,  type:'sacrifice', x:234,  y:438, auraId:_A[0]},
+  {stage:0,  type:'portal',    x:234,  y:360, auraId:_A[0]},
   // stage 1 — decoy — middle (x=970*0.55=534)
   {stage:1,  type:'decoy',     x:534,  y:320, auraId:_A[1], realIsLeft:true},
   // stage 2 — portal — late (x=1070*0.8=856)
   {stage:2,  type:'portal',    x:856,  y:300, auraId:_A[2], dimCourse:0},
   // stage 3 — sacrifice — middle (x=1225*0.55=673), y=440
-  {stage:3,  type:'sacrifice', x:673,  y:440, auraId:_A[3]},
+  {stage:3,  type:'decoy',     x:673,  y:320, auraId:_A[3], realIsLeft:true},
   // stage 4 — decoy — late (x=1060*0.8=848)
   {stage:4,  type:'decoy',     x:848,  y:270, auraId:_A[4], realIsLeft:false},
   // stage 5 — portal — early (x=1190*0.3=357)
   {stage:5,  type:'portal',    x:357,  y:340, auraId:_A[5], dimCourse:1},
   // stage 6 — sacrifice — late (x=1095*0.8=876), y=435
-  {stage:6,  type:'sacrifice', x:876,  y:435, auraId:_A[6]},
+  {stage:6,  type:'portal',    x:876,  y:160, auraId:_A[6]},
   // stage 7 — decoy — early (x=970*0.3=291)
   {stage:7,  type:'decoy',     x:291,  y:380, auraId:_A[7], realIsLeft:true},
   // stage 8 — portal — middle (x=1045*0.55=575)
   {stage:8,  type:'portal',    x:575,  y:200, auraId:_A[8], dimCourse:2},
   // stage 9 — sacrifice — early (x=1140*0.3=342), y=442
-  {stage:9,  type:'sacrifice', x:342,  y:442, auraId:_A[9]},
+  {stage:9,  type:'decoy',     x:342,  y:350, auraId:_A[9], realIsLeft:false},
   // stage 10 — decoy — middle (x=1080*0.55=594)
   {stage:10, type:'decoy',     x:594,  y:310, auraId:_A[0], realIsLeft:false},
   // stage 11 — portal — late (x=1062*0.8=850)
   {stage:11, type:'portal',    x:850,  y:250, auraId:_A[1], dimCourse:3},
   // stage 12 — sacrifice — middle (x=1245*0.55=685), y=438
-  {stage:12, type:'sacrifice', x:685,  y:438, auraId:_A[2]},
+  {stage:12, type:'portal',    x:685,  y:260, auraId:_A[2]},
   // stage 13 — decoy — late (x=1092*0.8=874)
   {stage:13, type:'decoy',     x:874,  y:140, auraId:_A[3], realIsLeft:true},
   // stage 14 — portal — early (x=1062*0.3=319)
   {stage:14, type:'portal',    x:319,  y:370, auraId:_A[4], dimCourse:4},
   // stage 15 — sacrifice — late (x=1082*0.8=866), y=436
-  {stage:15, type:'sacrifice', x:866,  y:436, auraId:_A[5]},
+  {stage:15, type:'decoy',     x:866,  y:280, auraId:_A[5], realIsLeft:true},
   // stage 16 — decoy — early (x=1055*0.3=317)
   {stage:16, type:'decoy',     x:317,  y:370, auraId:_A[6], realIsLeft:false},
   // stage 17 — portal — middle (x=1192*0.55=656)
   {stage:17, type:'portal',    x:656,  y:280, auraId:_A[7], dimCourse:5},
   // stage 18 — sacrifice — early (x=1142*0.3=343), y=440
-  {stage:18, type:'sacrifice', x:343,  y:440, auraId:_A[8]},
+  {stage:18, type:'portal',    x:343,  y:300, auraId:_A[8]},
   // stage 19 — decoy — middle (x=1207*0.55=664)
   {stage:19, type:'decoy',     x:664,  y:250, auraId:_A[9], realIsLeft:true},
   // stage 20 — portal — late (x=1167*0.8=934)
   {stage:20, type:'portal',    x:934,  y:220, auraId:_A[0], dimCourse:6},
   // stage 21 — sacrifice — middle (x=1182*0.55=650), y=437
-  {stage:21, type:'sacrifice', x:650,  y:437, auraId:_A[1]},
+  {stage:21, type:'decoy',     x:650,  y:240, auraId:_A[1], realIsLeft:false},
   // stage 22 — decoy — late (x=1232*0.8=986)
   {stage:22, type:'decoy',     x:986,  y:220, auraId:_A[2], realIsLeft:false},
   // stage 23 — portal — early (x=1187*0.3=356)
   {stage:23, type:'portal',    x:356,  y:340, auraId:_A[3], dimCourse:7},
   // stage 24 — sacrifice — late (x=1347*0.8=1078), y=438
-  {stage:24, type:'sacrifice', x:1078, y:438, auraId:_A[4]},
+  {stage:24, type:'portal',    x:1078, y:200, auraId:_A[4]},
   // stage 25 — decoy — early (x=1467*0.3=440)
   {stage:25, type:'decoy',     x:440,  y:370, auraId:_A[5], realIsLeft:true},
   // stage 26 — portal — middle (x=1607*0.55=884)
   {stage:26, type:'portal',    x:884,  y:200, auraId:_A[6], dimCourse:8},
   // stage 27 — sacrifice — early (x=1625*0.3=488), y=435
-  {stage:27, type:'sacrifice', x:488,  y:435, auraId:_A[7]},
+  {stage:27, type:'decoy',     x:488,  y:180, auraId:_A[7], realIsLeft:true},
   // stage 28 — decoy — middle (x=1797*0.55=988)
   {stage:28, type:'decoy',     x:988,  y:210, auraId:_A[8], realIsLeft:false},
   // stage 29 — portal — late (x=2667*0.8=2134)
@@ -524,7 +578,30 @@ function initStage(s){
   });
   updateUI();
 }
-function init(){ if((gameState==='playing'||gameState==='dimension')&&bestStage>0) saveLeaderboard(); deathCount=0; stage=0; gameState='playing'; stageDeaths=[]; startTime=Date.now(); stageStartTime=Date.now(); bestStage=0; aurasCollectedThisRun=0; dimState=null; savedDimReturn=null; initStage(0); }
+function init(){ if((gameState==='playing'||gameState==='dimension')&&bestStage>0) saveLeaderboard(); deathCount=0; stage=0; gameState='playing'; stageDeaths=[]; startTime=Date.now(); stageStartTime=Date.now(); bestStage=0; aurasCollectedThisRun=0; dimState=null; savedDimReturn=null; secretMode=false; initStage(0); }
+
+function initSecretStage(i){
+  secretMode=true; secretStage=i;
+  const sl=SECRET_LEVELS[i];
+  secretSpeedMult=sl.speedMult||1;
+  secretPlatOpacity=sl.platOpacity!=null?sl.platOpacity:1;
+  secretDarkness=sl.darkness||false;
+  camera={x:0}; particles=[]; stageStartTime=Date.now();
+  initPlayer();
+  sl.platforms.forEach(p=>{
+    if(p.type==='moving'){p.x=p.mx;p.dir=1;}
+    if(p.type==='vmove'){p.y=p.my;p.vdir=1;p._dy=0;}
+    if(p.type==='crumble'){p.ct=0;p.crumbled=false;p.active=false;}
+  });
+}
+function winSecretStage(){
+  if(secretStage<SECRET_LEVELS.length-1){ secretStage++; initSecretStage(secretStage); }
+  else{
+    secretMode=false;
+    showOverlay('🏆 TRUE CHAMPION!',
+      'All 5 secret levels cleared!<br>Deaths: '+deathCount+'<br>You are legendary.','Play Again');
+  }
+}
 
 // ─── CHEAT CODE: BOB = fly mode ──────────────────────────────────────────────
 let cheatBuffer='', flyMode=false;
@@ -625,7 +702,8 @@ document.addEventListener('keyup',e=>{ if(e.target.tagName!=='INPUT') keys[e.cod
 // ─── UPDATE ───────────────────────────────────────────────────────────────────
 function update(){
   if(gameState!=='playing'&&gameState!=='dimension') return;
-  const sd = (gameState==='dimension') ? dimState : STAGES[stage];
+  const inDim = (gameState==='dimension');
+  const sd = inDim ? dimState : (secretMode ? SECRET_LEVELS[secretStage] : STAGES[stage]);
 
   // carry vmove
   if(player._rideV){ player.y+=player._rideV._dy; player._rideV=null; }
@@ -634,7 +712,7 @@ function update(){
   sd.platforms.forEach(p=>{
     if(p.type==='moving'){
       if(!p.dir) p.dir=1;
-      p.x+=Math.abs(p.speed)*p.dir;
+      p.x += Math.abs(p.speed) * p.dir * (secretMode ? secretSpeedMult : 1);
       if(p.x>p.mx+p.range||p.x<p.mx-p.range) p.dir*=-1;
     }
     if(p.type==='vmove'){
@@ -689,30 +767,22 @@ function update(){
   camera.x=Math.max(0,Math.min(camera.x,sd.cameraMax-W));
 
   // finish
-  if(player.x+player.w>sd.finish){
-    if(gameState==='dimension') dimensionWin();
-    else winStage();
+  if(gameState==='dimension'){
+    if(player.x+player.w>dimState.finish) dimensionWin();
+  } else if(secretMode){
+    if(player.x+player.w>SECRET_LEVELS[secretStage].finish) winSecretStage();
+  } else {
+    if(player.x+player.w>sd.finish) winStage();
   }
 
-  // secret zone collection (skip if in dimension)
-  if(gameState==='playing'){
+  // secret zone collection (skip if in dimension or secret mode)
+  if(!secretMode && gameState!=='dimension'){
     const now_t=Date.now();
     SECRET_ZONES.forEach(z=>{
       if(z.stage!==stage) return;
       if(unlockedAuras.includes(z.auraId)) return;
       if(!hit(player.x,player.y,player.w,player.h,z.x,z.y,z.w,z.h)) return;
-      if(z.type==='sacrifice'){
-        // award aura then die
-        unlockedAuras.push(z.auraId);
-        localStorage.setItem('roboAuras',JSON.stringify(unlockedAuras));
-        activeAura=z.auraId;
-        localStorage.setItem('roboActiveAura',activeAura);
-        aurasCollectedThisRun++;
-        const a=AURAS.find(a=>a.id===z.auraId);
-        showCheatMsg((a?a.name:'Aura')+' — TRUE SACRIFICE!');
-        updateAuraUI();
-        die();
-      } else if(z.type==='portal'){
+      if(z.type==='portal'){
         dimensionEnter(z);
       } else if(z.type==='decoy'){
         // check which orb was hit: left orb at z.x, right orb at z.x+36
@@ -758,6 +828,7 @@ function die(){
     dimensionFail();
     return;
   }
+  if(secretMode){ deathCount++; if(!stageDeaths[secretStage+30]) stageDeaths[secretStage+30]=0; stageDeaths[secretStage+30]++; initSecretStage(secretStage); return; }
   deathCount++;
   if(!stageDeaths[stage]) stageDeaths[stage]=0;
   stageDeaths[stage]++;
@@ -767,22 +838,34 @@ function winStage(){
   if(!stageDeaths[stage]) stageDeaths[stage]=0;
   if(stage+1>bestStage) bestStage=stage+1;
   if(stage<STAGES.length-1){ stage++; stageStartTime=Date.now(); initStage(stage); }
-  else{ gameState='win'; saveLeaderboard(); showOverlay('🏆 YOU WIN!','All 30 stages complete!<br>Deaths: '+deathCount,'Play Again'); }
+  else{
+    gameState='win'; saveLeaderboard();
+    const ov=document.getElementById('overlay');
+    ov.style.display='flex';
+    ov.innerHTML=`<h1>🏆 YOU WIN!</h1>
+      <p>All 30 stages complete!<br>Deaths: ${deathCount}</p>
+      <div style="display:flex;gap:12px;margin-top:20px;">
+        <button id="startBtn" style="padding:13px 32px;font-size:18px;background:linear-gradient(135deg,#ff6b6b,#feca57);border:none;border-radius:30px;cursor:pointer;font-weight:bold;color:#fff;">↩ Play Again</button>
+        <button id="secretBtn" style="padding:13px 32px;font-size:18px;background:linear-gradient(135deg,#7b2ff7,#00d4ff);border:none;border-radius:30px;cursor:pointer;font-weight:bold;color:#fff;">🔒 Secret Levels</button>
+      </div>`;
+    document.getElementById('startBtn').onclick=()=>{ ov.style.display='none'; init(); gameState='playing'; };
+    document.getElementById('secretBtn').onclick=()=>{ ov.style.display='none'; initAudio(); initSecretStage(0); gameState='playing'; };
+  }
 }
 
 // ─── DRAW ─────────────────────────────────────────────────────────────────────
 function draw(){
   const inDim = (gameState==='dimension');
-  const sd = inDim ? dimState : STAGES[stage];
+  const sd = inDim ? dimState : (secretMode ? SECRET_LEVELS[secretStage] : STAGES[stage]);
   if(inDim){
     // void/purple dimension background
     const g=ctx.createLinearGradient(0,0,0,H);
     g.addColorStop(0,'#0d0020'); g.addColorStop(1,'#1a0040');
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
   } else {
-    const bgIdx=DIFF[stage].bg;
+    const bgColors = secretMode ? SECRET_LEVELS[secretStage].bg : BGS[DIFF[stage].bg];
     const g=ctx.createLinearGradient(0,0,0,H);
-    g.addColorStop(0,BGS[bgIdx][0]); g.addColorStop(1,BGS[bgIdx][1]);
+    g.addColorStop(0,bgColors[0]); g.addColorStop(1,bgColors[1]);
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
   }
 
@@ -802,7 +885,7 @@ function draw(){
 
   ctx.save(); ctx.translate(-camera.x,0);
 
-  sd.platforms.forEach(p=>{
+  sd.platforms.forEach((p,_pi)=>{
     if(p.type==='lava'){
       ctx.fillStyle='#c0392b'; ctx.fillRect(p.x,p.y,Math.min(p.w,W+camera.x+200),p.h);
       const t=Date.now()/400;
@@ -814,8 +897,11 @@ function draw(){
       if(p.crumbled) return;
       if(p.active){ const f=p.ct/CRUMBLE_T; ox=(Math.random()-.5)*f*8; oy=(Math.random()-.5)*f*4; ctx.globalAlpha=1-f*.5; }
     }
+    if(secretMode && secretPlatOpacity<1) ctx.globalAlpha=secretPlatOpacity;
+    // Rainbow Rush: cycle colors for moving platforms
+    const rainbowColor = (secretMode && secretStage===1 && p.type==='moving') ? `hsl(${Date.now()/10+_pi*30},100%,60%)` : p.color;
     ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(p.x+ox+3,p.y+oy+3,p.w,p.h);
-    ctx.fillStyle=p.color; ctx.fillRect(p.x+ox,p.y+oy,p.w,p.h);
+    ctx.fillStyle=rainbowColor; ctx.fillRect(p.x+ox,p.y+oy,p.w,p.h);
     ctx.fillStyle='rgba(255,255,255,.17)'; ctx.fillRect(p.x+ox,p.y+oy,p.w,4);
     ctx.globalAlpha=1;
     if(p.type==='bounce'){ ctx.fillStyle='#fff'; ctx.font='11px Arial'; ctx.textAlign='center'; ctx.fillText('↑↑',p.x+ox+p.w/2,p.y+oy+p.h/2+4); }
@@ -829,9 +915,9 @@ function draw(){
     }
   });
 
-  // secret zones — only draw when not in dimension
+  // secret zones — only draw when not in dimension and not in secret mode
   const now2=Date.now()/1000;
-  if(!inDim){
+  if(!inDim && !secretMode){
     SECRET_ZONES.forEach(z=>{
       if(z.stage!==stage||unlockedAuras.includes(z.auraId)) return;
       const cx=z.x+13, cy=z.y+13;
@@ -842,22 +928,7 @@ function draw(){
       const aur=AURAS.find(a=>a.id===z.auraId);
       ctx.save();
 
-      if(z.type==='sacrifice'){
-        // Red pulsing orb just above lava — glows ominously
-        const pulse=0.5+Math.sin(now2*4)*0.3;
-        const gr=ctx.createRadialGradient(cx,cy,2,cx,cy,16);
-        gr.addColorStop(0,'rgba(255,80,0,'+((0.7+pulse*0.3)*proximity)+')');
-        gr.addColorStop(0.5,'rgba(200,0,0,'+(0.5*proximity)+')');
-        gr.addColorStop(1,'rgba(100,0,0,0)');
-        ctx.fillStyle=gr;
-        ctx.beginPath(); ctx.arc(cx,cy,16,0,Math.PI*2); ctx.fill();
-        // skull symbol hint
-        if(dist<70){
-          ctx.globalAlpha=proximity*0.8;
-          ctx.fillStyle='#ff2200'; ctx.font='14px Arial'; ctx.textAlign='center';
-          ctx.fillText('☠',cx,cy+5);
-        }
-      } else if(z.type==='portal'){
+      if(z.type==='portal'){
         // Animated swirling portal circle
         const rot=now2*2.5;
         ctx.globalAlpha=proximity*(0.7+Math.sin(now2*3)*0.15);
@@ -943,6 +1014,15 @@ function draw(){
   ctx.fillStyle='rgba(255,255,255,.28)'; ctx.fillRect(-14,-17,28,6);
   ctx.restore(); ctx.restore();
 
+  // Dark Matter darkness effect (spotlight around player)
+  if(secretDarkness){
+    const darkness=ctx.createRadialGradient(player.x+14-camera.x,player.y+17,30,player.x+14-camera.x,player.y+17,160);
+    darkness.addColorStop(0,'rgba(0,0,0,0)');
+    darkness.addColorStop(0.4,'rgba(0,0,0,0.7)');
+    darkness.addColorStop(1,'rgba(0,0,0,0.97)');
+    ctx.fillStyle=darkness; ctx.fillRect(0,0,W,H);
+  }
+
   // stage watermark / dimension overlay
   if(inDim){
     ctx.fillStyle='rgba(160,50,255,0.10)';
@@ -957,15 +1037,20 @@ function draw(){
   } else {
     ctx.fillStyle='rgba(255,255,255,.07)';
     ctx.font='bold 68px Arial'; ctx.textAlign='center';
-    ctx.fillText(sd.name.toUpperCase(),W/2,H/2+24);
+    ctx.fillText(secretMode ? SECRET_LEVELS[secretStage].name.toUpperCase() : sd.name.toUpperCase(), W/2, H/2+24);
   }
 
   // stage progress bar (only in normal play)
-  if(!inDim){
+  if(!inDim && !secretMode){
     const barW=W-40, barH=4, barX=20, barY=H-12;
     ctx.fillStyle='rgba(255,255,255,.1)'; ctx.fillRect(barX,barY,barW,barH);
     ctx.fillStyle=DIFF[stage].color;
     ctx.fillRect(barX,barY,barW*(stage/29),barH);
+  } else if(secretMode){
+    const barW=W-40, barH=4, barX=20, barY=H-12;
+    ctx.fillStyle='rgba(255,255,255,.1)'; ctx.fillRect(barX,barY,barW,barH);
+    ctx.fillStyle='#7b2ff7';
+    ctx.fillRect(barX,barY,barW*(secretStage/4),barH);
   }
 }
 
@@ -973,8 +1058,15 @@ function draw(){
 function fmt(ms){ const s=Math.floor(ms/1000); return Math.floor(s/60)+':'+(s%60+'').padStart(2,'0'); }
 function updateUI(){
   document.getElementById('playerTag').textContent='👤 '+(username||'?');
-  document.getElementById('stNum').textContent=stage+1;
   document.getElementById('deaths').textContent=deathCount;
+  if(secretMode){
+    document.getElementById('stNum').textContent='S'+(secretStage+1);
+    const dl=document.getElementById('diffLabel');
+    dl.textContent='🔒 SECRET'; dl.style.color='#7b2ff7'; dl.style.background='rgba(0,0,0,.4)';
+    document.getElementById('stName').textContent=SECRET_LEVELS[secretStage].name;
+    return;
+  }
+  document.getElementById('stNum').textContent=stage+1;
   document.getElementById('stName').textContent=STAGES[stage].name;
   const dl=document.getElementById('diffLabel');
   dl.textContent=DIFF[stage].label;
