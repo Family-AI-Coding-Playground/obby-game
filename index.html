@@ -16,16 +16,46 @@
   #overlay button { margin-top:20px; padding:13px 42px; font-size:21px; background:linear-gradient(135deg,#ff6b6b,#feca57); border:none; border-radius:30px; cursor:pointer; font-weight:bold; color:#fff; transition:transform .1s; }
   #overlay button:hover { transform:scale(1.07); }
   #controls { color:#555; font-size:12px; margin-top:7px; }
+  #gameRow { display:flex; gap:14px; align-items:flex-start; }
+  #stats { width:180px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:12px 14px; color:#fff; font-size:13px; flex-shrink:0; margin-top:0; }
+  #stats h3 { font-size:13px; color:#feca57; margin-bottom:10px; letter-spacing:1px; text-transform:uppercase; }
+  #stats .srow { display:flex; justify-content:space-between; margin-bottom:6px; color:#ccc; }
+  #stats .srow b { color:#fff; }
+  #stats hr { border:none; border-top:1px solid rgba(255,255,255,0.1); margin:8px 0; }
+  #stats #deathLog { font-size:11px; color:#aaa; max-height:200px; overflow-y:auto; }
+  #stats #deathLog div { display:flex; justify-content:space-between; padding:2px 0; }
+  #stats #deathLog div.best { color:#feca57; }
 </style>
 </head>
 <body>
 <div id="ui">
+  <span id="playerTag" style="color:#feca57">👤 ?</span>
   <span>Stage <b id="stNum">1</b>/30</span>
   <span id="diffLabel">EASY</span>
   <span id="stName" style="color:#feca57;font-weight:bold;font-size:13px;"></span>
   <span>Deaths: <b id="deaths">0</b></span>
 </div>
+<div id="gameRow">
 <canvas id="c"></canvas>
+<div id="stats">
+  <h3>📊 Stats</h3>
+  <div class="srow"><span>Time</span><b id="sTime">0:00</b></div>
+  <div class="srow"><span>Total Deaths</span><b id="sDeaths">0</b></div>
+  <div class="srow"><span>Best Stage</span><b id="sBest">1</b></div>
+  <div class="srow"><span>Avg Deaths/Stage</span><b id="sAvg">—</b></div>
+  <div class="srow"><span>This Stage</span><b id="sStageDeath">0</b></div>
+  <div class="srow"><span>Stage Time</span><b id="sStageTime">0:00</b></div>
+  <hr>
+  <div style="color:#888;font-size:11px;margin-bottom:5px;">Deaths per stage</div>
+  <div id="deathLog"></div>
+  <hr>
+  <h3>✨ Auras</h3>
+  <div id="auraList" style="font-size:11px;color:#ccc;"></div>
+  <hr>
+  <h3>🏆 Leaderboard</h3>
+  <div id="lbList" style="font-size:11px;color:#ccc;"></div>
+</div>
+</div>
 <div id="controls">← → / A D move &nbsp;·&nbsp; Space / W / ↑ jump &nbsp;·&nbsp; Double jump &nbsp;·&nbsp; 🟠 Crumble &nbsp;·&nbsp; 🔴 Bounce &nbsp;·&nbsp; 🟦 Elevator</div>
 
 <div id="overlay">
@@ -33,6 +63,11 @@
   <p>30 levels · Easy → Extreme Demon<br>
      Reach the flag. Don't touch lava!<br><br>
      🟣 Moving &nbsp; 🔴 Bounce &nbsp; 🟦 Elevator &nbsp; 🟠 Crumble</p>
+  <div style="margin-top:14px;display:flex;gap:8px;align-items:center;">
+    <input id="usernameInput" type="text" maxlength="16" placeholder="Enter username..."
+      style="padding:10px 16px;font-size:16px;border-radius:20px;border:2px solid #feca57;
+             background:rgba(255,255,255,0.1);color:#fff;outline:none;width:200px;text-align:center;">
+  </div>
   <button id="startBtn">▶ Play</button>
 </div>
 
@@ -331,6 +366,60 @@ const GRAVITY=0.55, JUMP=-13, SPEED=4.5, BOUNCE=-18, CRUMBLE_T=52;
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let player, camera, keys={}, deathCount=0, stage=0, gameState='menu', particles=[];
+let stageDeaths=[], startTime=0, stageStartTime=0, bestStage=0, totalTime=0;
+
+// ─── AURA SKINS ──────────────────────────────────────────────────────────────
+const AURAS = [
+  { id:'fire',    name:'🔥 Fire',     colors:['#ff4500','#ff8c00','#ffd700'], glow:'#ff4500' },
+  { id:'frost',   name:'❄️ Frost',    colors:['#00cfff','#a0eeff','#ffffff'], glow:'#00cfff' },
+  { id:'shadow',  name:'🌑 Shadow',   colors:['#6600cc','#220044','#ff00ff'], glow:'#aa00ff' },
+  { id:'toxic',   name:'☢️ Toxic',    colors:['#00ff44','#44ff00','#ccff00'], glow:'#00ff44' },
+  { id:'galaxy',  name:'🌌 Galaxy',   colors:['#ff6ec7','#7b2ff7','#00d4ff'], glow:'#7b2ff7' },
+  { id:'rainbow', name:'🌈 Rainbow',  colors:['#ff0000','#00ff00','#0000ff'], glow:'#ffffff' },
+  { id:'gold',    name:'👑 Gold',     colors:['#ffd700','#ffaa00','#fff0aa'], glow:'#ffd700' },
+  { id:'storm',   name:'⚡ Storm',    colors:['#aaddff','#ffffff','#8844ff'], glow:'#aaddff' },
+  { id:'sakura',  name:'🌸 Sakura',   colors:['#ffb7c5','#ff85a1','#ffe0ea'], glow:'#ffb7c5' },
+  { id:'void',    name:'🕳️ Void',    colors:['#000000','#1a0033','#4400aa'], glow:'#220055' },
+];
+// secret zones: one per stage (0-indexed), placed just before finish
+// auras cycle: fire/frost/shadow/toxic/galaxy/rainbow/gold/storm/sakura/void × 3 stages each
+const _A=['fire','frost','shadow','toxic','galaxy','rainbow','gold','storm','sakura','void'];
+const SECRET_ZONES = [
+  // finish y positions from stage data → secret placed ~60px above & 150px before finish
+  {stage:0,  x:620,  y:295, auraId:_A[0]}, // fin(790,355)
+  {stage:1,  x:810,  y:292, auraId:_A[1]}, // fin(970,352)
+  {stage:2,  x:910,  y:218, auraId:_A[2]}, // fin(1070,278)
+  {stage:3,  x:1065, y:228, auraId:_A[3]}, // fin(1225,288)
+  {stage:4,  x:900,  y:238, auraId:_A[4]}, // fin(1062,298)
+  {stage:5,  x:1030, y:212, auraId:_A[5]}, // fin(1192,272)
+  {stage:6,  x:930,  y:50,  auraId:_A[6]}, // fin(1096,96)
+  {stage:7,  x:810,  y:158, auraId:_A[7]}, // fin(972,218)
+  {stage:8,  x:885,  y:162, auraId:_A[8]}, // fin(1047,222)
+  {stage:9,  x:980,  y:162, auraId:_A[9]}, // fin(1142,222)
+  {stage:10, x:920,  y:198, auraId:_A[0]}, // fin(1082,258)
+  {stage:11, x:900,  y:138, auraId:_A[1]}, // fin(1063,198)
+  {stage:12, x:1085, y:112, auraId:_A[2]}, // fin(1247,172)
+  {stage:13, x:930,  y:42,  auraId:_A[3]}, // fin(1094,88)
+  {stage:14, x:900,  y:152, auraId:_A[4]}, // fin(1063,212)
+  {stage:15, x:920,  y:142, auraId:_A[5]}, // fin(1082,202)
+  {stage:16, x:895,  y:198, auraId:_A[6]}, // fin(1057,258)
+  {stage:17, x:1030, y:162, auraId:_A[7]}, // fin(1193,222)
+  {stage:18, x:980,  y:152, auraId:_A[8]}, // fin(1142,212)
+  {stage:19, x:1045, y:128, auraId:_A[9]}, // fin(1208,188)
+  {stage:20, x:1005, y:102, auraId:_A[0]}, // fin(1167,162)
+  {stage:21, x:1020, y:208, auraId:_A[1]}, // fin(1183,268)
+  {stage:22, x:1070, y:148, auraId:_A[2]}, // fin(1233,208)
+  {stage:23, x:1025, y:102, auraId:_A[3]}, // fin(1188,162)
+  {stage:24, x:1185, y:98,  auraId:_A[4]}, // fin(1348,158)
+  {stage:25, x:1305, y:30,  auraId:_A[5]}, // fin(1468,78)
+  {stage:26, x:1445, y:40,  auraId:_A[6]}, // fin(1608,92)
+  {stage:27, x:1462, y:20,  auraId:_A[7]}, // fin(1626,58)
+  {stage:28, x:1635, y:20,  auraId:_A[8]}, // fin(1798,60)
+  {stage:29, x:2505, y:20,  auraId:_A[9]}, // fin(2668,63)
+].map(z=>({...z, w:28, h:28}));
+let unlockedAuras = JSON.parse(localStorage.getItem('roboAuras')||'[]');
+let activeAura = localStorage.getItem('roboActiveAura')||null;
+let username = localStorage.getItem('roboUsername')||'';
 
 function initPlayer(){
   player={x:40,y:350,w:28,h:34,vx:0,vy:0,onGround:false,jumps:0,color:'#ff6b6b',angle:0,_rideV:null};
@@ -345,17 +434,10 @@ function initStage(s){
   });
   updateUI();
 }
-function init(){ deathCount=0; stage=0; gameState='playing'; initStage(0); }
+function init(){ if(gameState==='playing'&&bestStage>0) saveLeaderboard(); deathCount=0; stage=0; gameState='playing'; stageDeaths=[]; startTime=Date.now(); stageStartTime=Date.now(); bestStage=0; initStage(0); }
 
 // ─── CHEAT CODE: BOB = fly mode ──────────────────────────────────────────────
 let cheatBuffer='', flyMode=false;
-document.addEventListener('keypress',e=>{
-  cheatBuffer=(cheatBuffer+e.key.toUpperCase()).slice(-3);
-  if(cheatBuffer==='BOB'){
-    flyMode=!flyMode;
-    showCheatMsg(flyMode?'✈️ FLY MODE ON — BOB':'🚫 FLY MODE OFF');
-  }
-});
 function showCheatMsg(txt){
   let el=document.getElementById('cheatMsg');
   if(!el){ el=document.createElement('div'); el.id='cheatMsg';
@@ -370,6 +452,11 @@ function showCheatMsg(txt){
 // ─── INPUT ────────────────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
   keys[e.code]=true;
+  // cheat code: type BOB
+  if(e.key&&e.key.length===1){
+    cheatBuffer=(cheatBuffer+e.key.toUpperCase()).slice(-3);
+    if(cheatBuffer==='BOB'){ flyMode=!flyMode; showCheatMsg(flyMode?'✈️ FLY MODE ON':'🚫 FLY MODE OFF'); }
+  }
   if((e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW')&&gameState==='playing'){
     if(flyMode){ player.vy=-8; }
     else if(player.jumps<2){ player.vy=JUMP*(player.jumps===1?.82:1); player.jumps++; player.onGround=false; }
@@ -447,6 +534,21 @@ function update(){
   // finish
   if(player.x+player.w>sd.finish) winStage();
 
+  // secret zone collection
+  SECRET_ZONES.forEach(z=>{
+    if(z.stage===stage && hit(player.x,player.y,player.w,player.h,z.x,z.y,z.w,z.h)){
+      if(!unlockedAuras.includes(z.auraId)){
+        unlockedAuras.push(z.auraId);
+        localStorage.setItem('roboAuras',JSON.stringify(unlockedAuras));
+        activeAura=z.auraId;
+        localStorage.setItem('roboActiveAura',activeAura);
+        const a=AURAS.find(a=>a.id===z.auraId);
+        showCheatMsg(a.name+' UNLOCKED!');
+        updateAuraUI();
+      }
+    }
+  });
+
   // particles
   particles=particles.filter(p=>p.life>0);
   particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=.4; p.life--; });
@@ -463,10 +565,17 @@ function spawnParts(wx,wy){
       color:['#ff6b6b','#feca57','#ff9ff3','#ff4757','#fff'][Math.floor(Math.random()*5)]});
   }
 }
-function die(){ spawnParts(player.x+14,player.y+17); playScream(); deathCount++; initStage(stage); }
+function die(){
+  spawnParts(player.x+14,player.y+17); playScream(); deathCount++;
+  if(!stageDeaths[stage]) stageDeaths[stage]=0;
+  stageDeaths[stage]++;
+  initStage(stage);
+}
 function winStage(){
-  if(stage<STAGES.length-1){ stage++; initStage(stage); }
-  else{ gameState='win'; showOverlay('🏆 YOU WIN!','All 30 stages complete!<br>Deaths: '+deathCount,'Play Again'); }
+  if(!stageDeaths[stage]) stageDeaths[stage]=0;
+  if(stage+1>bestStage) bestStage=stage+1;
+  if(stage<STAGES.length-1){ stage++; stageStartTime=Date.now(); initStage(stage); }
+  else{ gameState='win'; saveLeaderboard(); showOverlay('🏆 YOU WIN!','All 30 stages complete!<br>Deaths: '+deathCount,'Play Again'); }
 }
 
 // ─── DRAW ─────────────────────────────────────────────────────────────────────
@@ -515,10 +624,65 @@ function draw(){
     }
   });
 
+  // secret zones — subtle, hidden, only visible up close
+  const now2=Date.now()/1000;
+  SECRET_ZONES.forEach(z=>{
+    if(z.stage!==stage||unlockedAuras.includes(z.auraId)) return;
+    const cx=z.x+14, cy=z.y+14;
+    const distX=Math.abs(player.x+14-cx), distY=Math.abs(player.y+17-cy);
+    const dist=Math.sqrt(distX*distX+distY*distY);
+    const proximity=Math.max(0,1-(dist/120)); // only visible within 120px
+    if(proximity<=0) return;
+    const a=AURAS.find(a=>a.id===z.auraId);
+    ctx.save();
+    // very faint shimmer — looks like a wall/floor glint
+    ctx.globalAlpha=proximity*0.12+Math.sin(now2*2.3)*0.04*proximity;
+    ctx.fillStyle=a.glow;
+    ctx.fillRect(z.x,z.y,z.w,z.h);
+    // tiny sparkle dots only super close
+    if(dist<60){
+      ctx.globalAlpha=proximity*0.5;
+      for(let i=0;i<3;i++){
+        const sx=z.x+4+Math.sin(now2*3+i*2.1)*10;
+        const sy=z.y+4+Math.cos(now2*2+i*1.7)*8;
+        ctx.fillStyle=a.colors[i%a.colors.length];
+        ctx.fillRect(sx,sy,2,2);
+      }
+    }
+    ctx.restore();
+  });
+
+  // player aura
+  if(activeAura){
+    const aur=AURAS.find(a=>a.id===activeAura);
+    if(aur){
+      const cx=player.x+14, cy=player.y+17, t=Date.now()/300;
+      for(let i=0;i<8;i++){
+        const ang=t+i*Math.PI/4, r=22+Math.sin(t*2+i)*5;
+        const px=cx+Math.cos(ang)*r, py=cy+Math.sin(ang)*r;
+        ctx.save();
+        ctx.globalAlpha=0.55;
+        const gr2=ctx.createRadialGradient(px,py,0,px,py,7);
+        gr2.addColorStop(0,aur.colors[i%aur.colors.length]);
+        gr2.addColorStop(1,'transparent');
+        ctx.fillStyle=gr2; ctx.beginPath(); ctx.arc(px,py,7,0,Math.PI*2); ctx.fill();
+        ctx.restore();
+      }
+      ctx.save();
+      ctx.globalAlpha=0.18+Math.sin(t)*0.07;
+      const gr3=ctx.createRadialGradient(cx,cy,5,cx,cy,30);
+      gr3.addColorStop(0,aur.glow); gr3.addColorStop(1,'transparent');
+      ctx.fillStyle=gr3; ctx.beginPath(); ctx.arc(cx,cy,30,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
   // player
   ctx.save();
   ctx.translate(player.x+14,player.y+17); ctx.rotate(player.angle);
-  ctx.fillStyle=player.color; ctx.fillRect(-14,-17,28,34);
+  if(activeAura){ const aur=AURAS.find(a=>a.id===activeAura); ctx.shadowBlur=12; ctx.shadowColor=aur.glow; }
+  ctx.fillStyle=activeAura?(AURAS.find(a=>a.id===activeAura).colors[0]):player.color; ctx.fillRect(-14,-17,28,34);
+  ctx.shadowBlur=0;
   ctx.fillStyle='#fff'; ctx.fillRect(-8,-11,7,8); ctx.fillRect(1,-11,7,8);
   ctx.fillStyle='#222'; ctx.fillRect(-6,-10,4,5); ctx.fillRect(3,-10,4,5);
   ctx.fillStyle='rgba(255,255,255,.28)'; ctx.fillRect(-14,-17,28,6);
@@ -537,7 +701,9 @@ function draw(){
 }
 
 // ─── UI ───────────────────────────────────────────────────────────────────────
+function fmt(ms){ const s=Math.floor(ms/1000); return Math.floor(s/60)+':'+(s%60+'').padStart(2,'0'); }
 function updateUI(){
+  document.getElementById('playerTag').textContent='👤 '+(username||'?');
   document.getElementById('stNum').textContent=stage+1;
   document.getElementById('deaths').textContent=deathCount;
   document.getElementById('stName').textContent=STAGES[stage].name;
@@ -545,6 +711,58 @@ function updateUI(){
   dl.textContent=DIFF[stage].label;
   dl.style.color=DIFF[stage].color;
   dl.style.background='rgba(0,0,0,.4)';
+}
+function updateStats(){
+  if(gameState!=='playing') return;
+  const now=Date.now();
+  document.getElementById('sTime').textContent=fmt(now-startTime);
+  document.getElementById('sDeaths').textContent=deathCount;
+  document.getElementById('sBest').textContent=bestStage+1;
+  document.getElementById('sStageDeath').textContent=stageDeaths[stage]||0;
+  document.getElementById('sStageTime').textContent=fmt(now-stageStartTime);
+  const played=stageDeaths.filter((_,i)=>i<=stage);
+  const avg=played.length?( played.reduce((a,b)=>a+(b||0),0)/played.length ).toFixed(1):'—';
+  document.getElementById('sAvg').textContent=avg;
+  // death log
+  const log=document.getElementById('deathLog');
+  const minD=Math.min(...stageDeaths.filter(d=>d>0));
+  log.innerHTML=stageDeaths.map((d,i)=>
+    `<div class="${d===minD&&d>0?'best':''}"><span>Lvl ${i+1}</span><span>${d} 💀</span></div>`
+  ).join('');
+}
+function updateAuraUI(){
+  const list=document.getElementById('auraList');
+  if(!list) return;
+  if(unlockedAuras.length===0){ list.innerHTML='<div style="color:#555">Find ⭐ in secret spots!</div>'; return; }
+  list.innerHTML=AURAS.map(a=>{
+    const has=unlockedAuras.includes(a.id);
+    const active=activeAura===a.id;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;opacity:${has?1:.3}">
+      <span>${a.name}</span>
+      ${has?`<button onclick="activeAura='${a.id}';localStorage.setItem('roboActiveAura','${a.id}');updateAuraUI();"
+        style="font-size:9px;padding:1px 5px;border-radius:8px;border:none;cursor:pointer;
+        background:${active?'#feca57':'#333'};color:${active?'#000':'#fff'}">${active?'ON':'USE'}</button>`:''}
+    </div>`;
+  }).join('');
+}
+function saveLeaderboard(){
+  const entry={ name: username||'Anonymous', stage: bestStage+1, deaths: deathCount, time: fmt(Date.now()-startTime), ts: Date.now() };
+  const lb=JSON.parse(localStorage.getItem('roboRallyLB')||'[]');
+  lb.push(entry);
+  lb.sort((a,b)=>b.stage-a.stage||a.deaths-b.deaths);
+  localStorage.setItem('roboRallyLB', JSON.stringify(lb.slice(0,10)));
+  renderLeaderboard();
+}
+function renderLeaderboard(){
+  const lb=JSON.parse(localStorage.getItem('roboRallyLB')||'[]');
+  const medals=['🥇','🥈','🥉'];
+  document.getElementById('lbList').innerHTML=lb.length?
+    lb.map((e,i)=>`<div style="display:flex;justify-content:space-between;padding:2px 0;gap:4px;">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px">${medals[i]||'#'+(i+1)} ${e.name||'Anon'}</span>
+      <span style="color:#feca57;flex-shrink:0">Lv${e.stage}</span>
+      <span style="color:#ff6b6b;flex-shrink:0">${e.deaths}💀</span>
+    </div>`).join('')
+    :'<div style="color:#555">No runs yet</div>';
 }
 function showOverlay(title,desc,btn){
   const ov=document.getElementById('overlay');
@@ -589,7 +807,7 @@ function playScream(){
 
 // ─── LOOP ─────────────────────────────────────────────────────────────────────
 function loop(){
-  update(); draw();
+  update(); draw(); updateStats();
   if(screamT>0){
     screamT--;
     ctx.save(); ctx.globalAlpha=Math.min(1,screamT/20);
@@ -604,10 +822,19 @@ function loop(){
 
 // boot
 stage=0; camera={x:0}; gameState='menu'; initPlayer();
+renderLeaderboard();
+updateAuraUI();
 document.getElementById('startBtn').onclick=()=>{
+  const inp=document.getElementById('usernameInput');
+  if(inp){ const v=inp.value.trim(); if(v){ username=v; localStorage.setItem('roboUsername',v); } }
   document.getElementById('overlay').style.display='none';
   initAudio(); init(); gameState='playing';
 };
+// pre-fill saved username
+const _ui=document.getElementById('usernameInput');
+if(_ui&&username) _ui.value=username;
+// allow Enter key to start
+document.getElementById('usernameInput')?.addEventListener('keydown',e=>{ if(e.code==='Enter') document.getElementById('startBtn').click(); });
 loop();
 </script>
 </body>
