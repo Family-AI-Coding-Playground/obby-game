@@ -2,37 +2,37 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Obby!</title>
+<title>Robo-Rally</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: 'Arial', sans-serif; overflow: hidden; }
-  #ui { color: white; font-size: 18px; margin-bottom: 10px; display: flex; gap: 20px; align-items: center; }
-  #ui span { background: rgba(255,255,255,0.1); padding: 5px 14px; border-radius: 20px; }
-  canvas { border: 3px solid rgba(255,255,255,0.2); border-radius: 8px; display: block; }
-  #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); color: white; z-index: 10; }
-  #overlay h1 { font-size: 56px; margin-bottom: 10px; text-shadow: 0 0 24px #ff6b6b; }
-  #overlay p  { font-size: 17px; color: #ccc; margin-bottom: 8px; text-align: center; line-height: 1.6; }
-  #overlay button { margin-top: 20px; padding: 14px 44px; font-size: 22px; background: linear-gradient(135deg, #ff6b6b, #feca57); border: none; border-radius: 30px; cursor: pointer; font-weight: bold; color: white; box-shadow: 0 4px 20px rgba(255,107,107,0.5); transition: transform 0.1s; }
-  #overlay button:hover { transform: scale(1.07); }
-  #controls { color: #666; font-size: 12px; margin-top: 8px; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#1a1a2e; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:Arial,sans-serif; overflow:hidden; }
+  #ui { color:#fff; font-size:16px; margin-bottom:8px; display:flex; gap:16px; align-items:center; }
+  #ui span { background:rgba(255,255,255,0.1); padding:4px 12px; border-radius:20px; }
+  #diffLabel { font-weight:bold; font-size:14px; padding:4px 14px; border-radius:20px; }
+  canvas { border:3px solid rgba(255,255,255,0.15); border-radius:8px; display:block; }
+  #overlay { position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.82); color:#fff; z-index:10; }
+  #overlay h1 { font-size:54px; margin-bottom:10px; text-shadow:0 0 24px #ff6b6b; }
+  #overlay p  { font-size:16px; color:#ccc; margin-bottom:6px; text-align:center; line-height:1.7; }
+  #overlay button { margin-top:20px; padding:13px 42px; font-size:21px; background:linear-gradient(135deg,#ff6b6b,#feca57); border:none; border-radius:30px; cursor:pointer; font-weight:bold; color:#fff; transition:transform .1s; }
+  #overlay button:hover { transform:scale(1.07); }
+  #controls { color:#555; font-size:12px; margin-top:7px; }
 </style>
 </head>
 <body>
-
 <div id="ui">
-  <span>Stage: <b id="stageDisplay">1</b>/10</span>
-  <span id="stageNameDisplay" style="color:#feca57;font-weight:bold;"></span>
-  <span>Deaths: <b id="deathDisplay">0</b></span>
+  <span>Stage <b id="stNum">1</b>/30</span>
+  <span id="diffLabel">EASY</span>
+  <span id="stName" style="color:#feca57;font-weight:bold;font-size:13px;"></span>
+  <span>Deaths: <b id="deaths">0</b></span>
 </div>
 <canvas id="c"></canvas>
-<div id="controls">Arrow Keys / WASD · Space/W/↑ to jump · Double jump! · Red platforms crumble!</div>
+<div id="controls">← → / A D move &nbsp;·&nbsp; Space / W / ↑ jump &nbsp;·&nbsp; Double jump &nbsp;·&nbsp; 🟠 Crumble &nbsp;·&nbsp; 🔴 Bounce &nbsp;·&nbsp; 🟦 Elevator</div>
 
 <div id="overlay">
-  <h1>OBBY!</h1>
-  <p>Reach the flag at the end of each stage.<br>
-     Don't fall in the lava!<br><br>
-     🟣 Moving &nbsp; 🔴 Bounce/Crumble &nbsp; 🟦 Elevator &nbsp; 🟩 Safe</p>
+  <h1>ROBO-RALLY</h1>
+  <p>30 levels · Easy → Extreme Demon<br>
+     Reach the flag. Don't touch lava!<br><br>
+     🟣 Moving &nbsp; 🔴 Bounce &nbsp; 🟦 Elevator &nbsp; 🟠 Crumble</p>
   <button id="startBtn">▶ Play</button>
 </div>
 
@@ -43,627 +43,540 @@ canvas.width  = 900;
 canvas.height = 500;
 const W = canvas.width, H = canvas.height;
 
-// ── STAGES ────────────────────────────────────────────────────────────────────
-// Types: 'start'|'finish'|'lava'|'moving'|'vmove'|'bounce'|'crumble'
-// moving: {mx, range, speed}  vmove: {my, vrange, vspeed}
-const STAGES = [
-
-  // 1 – Baby Steps
-  { name: 'Baby Steps', bg: ['#16213e','#0f3460'],
-    platforms: [
-      {x:0,   y:420, w:200, h:28, color:'#27ae60', type:'start'},
-      {x:230, y:390, w:160, h:24, color:'#3498db'},
-      {x:420, y:360, w:150, h:24, color:'#2980b9'},
-      {x:600, y:330, w:140, h:24, color:'#3498db'},
-      {x:770, y:300, w:130, h:24, color:'#2980b9'},
-      {x:930, y:270, w:140, h:24, color:'#27ae60', type:'finish'},
-      {x:0,   y:460, w:2500, h:40, color:'#e74c3c', type:'lava'},
-    ], finish:990, cameraMax:1130 },
-
-  // 2 – Slide Show
-  { name: 'Slide Show', bg: ['#2d1b69','#11998e'],
-    platforms: [
-      {x:0,   y:420, w:180, h:26, color:'#27ae60', type:'start'},
-      {x:210, y:380, w:100, h:22, color:'#9b59b6', type:'moving', mx:210, range:80,  speed:1.3},
-      {x:360, y:345, w:90,  h:22, color:'#8e44ad', type:'moving', mx:360, range:70,  speed:-1.6},
-      {x:510, y:315, w:120, h:22, color:'#3498db'},
-      {x:670, y:355, w:90,  h:22, color:'#9b59b6', type:'moving', mx:670, range:60,  speed:1.9},
-      {x:820, y:305, w:90,  h:22, color:'#8e44ad', type:'moving', mx:820, range:55,  speed:-1.4},
-      {x:970, y:265, w:130, h:22, color:'#27ae60', type:'finish'},
-      {x:0,   y:460, w:2500, h:40, color:'#e74c3c', type:'lava'},
-    ], finish:1040, cameraMax:1160 },
-
-  // 3 – Sky High (bounce pads)
-  { name: 'Sky High', bg: ['#0f2027','#203a43'],
-    platforms: [
-      {x:0,   y:420, w:160, h:26, color:'#27ae60', type:'start'},
-      {x:190, y:395, w:80,  h:22, color:'#f39c12'},
-      {x:300, y:375, w:60,  h:20, color:'#e74c3c', type:'bounce'},
-      {x:400, y:215, w:100, h:22, color:'#3498db'},
-      {x:530, y:245, w:80,  h:22, color:'#2980b9'},
-      {x:640, y:225, w:60,  h:20, color:'#e74c3c', type:'bounce'},
-      {x:730, y:105, w:90,  h:22, color:'#1abc9c'},
-      {x:850, y:155, w:80,  h:22, color:'#16a085'},
-      {x:960, y:205, w:60,  h:20, color:'#e74c3c', type:'bounce'},
-      {x:1055,y:85,  w:130, h:22, color:'#27ae60', type:'finish'},
-      {x:0,   y:460, w:2500, h:40, color:'#e74c3c', type:'lava'},
-    ], finish:1125, cameraMax:1240 },
-
-  // 4 – Tight Walk (narrow platforms)
-  { name: 'Tight Walk', bg: ['#1a0533','#4a0e8f'],
-    platforms: [
-      {x:0,   y:420, w:140, h:26, color:'#27ae60', type:'start'},
-      {x:170, y:393, w:50,  h:18, color:'#e67e22'},
-      {x:260, y:365, w:46,  h:18, color:'#d35400'},
-      {x:348, y:335, w:46,  h:18, color:'#e67e22'},
-      {x:436, y:307, w:44,  h:18, color:'#d35400'},
-      {x:524, y:330, w:44,  h:18, color:'#e67e22'},
-      {x:612, y:290, w:42,  h:18, color:'#d35400'},
-      {x:698, y:255, w:42,  h:18, color:'#e67e22'},
-      {x:784, y:275, w:42,  h:18, color:'#d35400'},
-      {x:870, y:245, w:40,  h:18, color:'#e67e22'},
-      {x:950, y:215, w:130, h:22, color:'#27ae60', type:'finish'},
-      {x:0,   y:460, w:2500, h:40, color:'#e74c3c', type:'lava'},
-    ], finish:1015, cameraMax:1130 },
-
-  // 5 – Elevators (vertical movers)
-  { name: 'Elevators', bg: ['#001f3f','#003366'],
-    platforms: [
-      {x:0,   y:420, w:150, h:26, color:'#27ae60', type:'start'},
-      {x:180, y:385, w:85,  h:22, color:'#1abc9c', type:'vmove', my:385, vrange:120, vspeed:1.6},
-      {x:320, y:305, w:85,  h:22, color:'#16a085', type:'vmove', my:305, vrange:100, vspeed:-2.0},
-      {x:460, y:315, w:100, h:22, color:'#3498db'},
-      {x:600, y:285, w:85,  h:22, color:'#1abc9c', type:'vmove', my:285, vrange:130, vspeed:1.9},
-      {x:740, y:235, w:80,  h:22, color:'#16a085', type:'vmove', my:200, vrange:100, vspeed:-1.6},
-      {x:880, y:225, w:80,  h:22, color:'#1abc9c', type:'vmove', my:225, vrange:80,  vspeed:2.3},
-      {x:1010,y:195, w:130, h:22, color:'#27ae60', type:'finish'},
-      {x:0,   y:460, w:2500, h:40, color:'#e74c3c', type:'lava'},
-    ], finish:1080, cameraMax:1200 },
-
-  // 6 – Crumble Zone (disappearing platforms)
-  { name: 'Crumble Zone', bg: ['#2c1654','#49243e'],
-    platforms: [
-      {x:0,   y:420, w:140, h:26, color:'#27ae60', type:'start'},
-      {x:170, y:393, w:90,  h:22, color:'#e67e22', type:'crumble'},
-      {x:290, y:363, w:85,  h:22, color:'#e67e22', type:'crumble'},
-      {x:405, y:333, w:100, h:22, color:'#3498db'},
-      {x:535, y:303, w:80,  h:22, color:'#e67e22', type:'crumble'},
-      {x:645, y:273, w:80,  h:22, color:'#e67e22', type:'crumble'},
-      {x:755, y:243, w:80,  h:22, color:'#e67e22', type:'crumble'},
-      {x:865, y:263, w:90,  h:22, color:'#3498db'},
-      {x:985, y:233, w:80,  h:22, color:'#e67e22', type:'crumble'},
-      {x:1095,y:203, w:130, h:22, color:'#27ae60', type:'finish'},
-      {x:0,   y:460, w:2500, h:40, color:'#e74c3c', type:'lava'},
-    ], finish:1165, cameraMax:1285 },
-
-  // 7 – Mix Up (movers + crumble + bounce)
-  { name: 'Mix Up', bg: ['#0d0d0d','#1a0a2e'],
-    platforms: [
-      {x:0,   y:420, w:130, h:26, color:'#27ae60', type:'start'},
-      {x:160, y:383, w:80,  h:20, color:'#9b59b6', type:'moving', mx:160, range:70, speed:1.6},
-      {x:300, y:345, w:70,  h:20, color:'#e67e22', type:'crumble'},
-      {x:410, y:315, w:55,  h:20, color:'#e74c3c', type:'bounce'},
-      {x:500, y:180, w:75,  h:20, color:'#3498db'},
-      {x:625, y:215, w:75,  h:20, color:'#1abc9c', type:'vmove', my:215, vrange:100, vspeed:1.8},
-      {x:755, y:255, w:65,  h:20, color:'#e67e22', type:'crumble'},
-      {x:870, y:225, w:70,  h:20, color:'#9b59b6', type:'moving', mx:870, range:80,  speed:-2.0},
-      {x:1000,y:205, w:65,  h:20, color:'#e67e22', type:'crumble'},
-      {x:1110,y:175, w:130, h:22, color:'#27ae60', type:'finish'},
-      {x:0,   y:460, w:2500, h:40, color:'#e74c3c', type:'lava'},
-    ], finish:1185, cameraMax:1305 },
-
-  // 8 – Speed Demon (fast movers, tight gaps)
-  { name: 'Speed Demon', bg: ['#0a0a0a','#1a1a00'],
-    platforms: [
-      {x:0,   y:420, w:120, h:26, color:'#27ae60', type:'start'},
-      {x:150, y:393, w:55,  h:18, color:'#9b59b6', type:'moving', mx:150, range:80,  speed:2.7},
-      {x:290, y:355, w:50,  h:18, color:'#8e44ad', type:'moving', mx:290, range:70,  speed:-3.0},
-      {x:410, y:315, w:50,  h:18, color:'#e74c3c', type:'bounce'},
-      {x:490, y:190, w:60,  h:18, color:'#3498db'},
-      {x:610, y:205, w:50,  h:18, color:'#9b59b6', type:'moving', mx:610, range:75,  speed:3.0},
-      {x:730, y:165, w:55,  h:18, color:'#1abc9c', type:'vmove', my:165, vrange:100, vspeed:2.5},
-      {x:860, y:185, w:50,  h:18, color:'#e67e22', type:'crumble'},
-      {x:970, y:205, w:50,  h:18, color:'#8e44ad', type:'moving', mx:970, range:60,  speed:-3.2},
-      {x:1080,y:225, w:50,  h:18, color:'#e74c3c', type:'bounce'},
-      {x:1145,y:105, w:55,  h:18, color:'#2980b9'},
-      {x:1255,y:125, w:130, h:22, color:'#27ae60', type:'finish'},
-      {x:0,   y:460, w:2500, h:40, color:'#e74c3c', type:'lava'},
-    ], finish:1345, cameraMax:1450 },
-
-  // 9 – Chaos (everything, narrow w=28-35)
-  { name: 'Chaos Mode', bg: ['#000011','#001122'],
-    platforms: [
-      {x:0,   y:420, w:110, h:26, color:'#27ae60', type:'start'},
-      {x:140, y:393, w:32,  h:16, color:'#e67e22'},
-      {x:222, y:363, w:30,  h:16, color:'#9b59b6', type:'moving', mx:222, range:80, speed:2.5},
-      {x:365, y:323, w:30,  h:16, color:'#1abc9c', type:'vmove',  my:323, vrange:120, vspeed:2.2},
-      {x:453, y:293, w:32,  h:16, color:'#e74c3c', type:'bounce'},
-      {x:522, y:175, w:40,  h:16, color:'#3498db'},
-      {x:622, y:198, w:30,  h:16, color:'#e67e22', type:'crumble'},
-      {x:712, y:213, w:30,  h:16, color:'#9b59b6', type:'moving', mx:712, range:75, speed:-2.8},
-      {x:852, y:183, w:30,  h:16, color:'#1abc9c', type:'vmove',  my:183, vrange:100, vspeed:2.5},
-      {x:963, y:163, w:30,  h:16, color:'#e67e22', type:'crumble'},
-      {x:1053,y:143, w:32,  h:16, color:'#e74c3c', type:'bounce'},
-      {x:1115,y:55,  w:35,  h:16, color:'#2980b9'},
-      {x:1215,y:93,  w:30,  h:16, color:'#9b59b6', type:'moving', mx:1215, range:60, speed:3.0},
-      {x:1315,y:105, w:130, h:22, color:'#27ae60', type:'finish'},
-      {x:0,   y:460, w:2500, h:40, color:'#e74c3c', type:'lava'},
-    ], finish:1400, cameraMax:1510 },
-
-  // 10 – THE GAUNTLET (tiny, fast, everything)
-  { name: '☠ THE GAUNTLET', bg: ['#0d0d0d','#1a0000'],
-    platforms: [
-      {x:0,   y:420, w:100, h:26, color:'#27ae60', type:'start'},
-      {x:130, y:393, w:25,  h:14, color:'#e67e22', type:'crumble'},
-      {x:208, y:363, w:22,  h:14, color:'#9b59b6', type:'moving', mx:208, range:90,  speed:3.2},
-      {x:355, y:323, w:25,  h:14, color:'#1abc9c', type:'vmove',  my:323, vrange:130, vspeed:2.8},
-      {x:434, y:293, w:25,  h:14, color:'#e74c3c', type:'bounce'},
-      {x:493, y:178, w:28,  h:14, color:'#e67e22', type:'crumble'},
-      {x:583, y:203, w:22,  h:14, color:'#9b59b6', type:'moving', mx:583, range:80,  speed:-3.5},
-      {x:723, y:163, w:25,  h:14, color:'#1abc9c', type:'vmove',  my:163, vrange:110, vspeed:3.0},
-      {x:806, y:143, w:25,  h:14, color:'#e67e22', type:'crumble'},
-      {x:885, y:173, w:25,  h:14, color:'#e74c3c', type:'bounce'},
-      {x:946, y:73,  w:32,  h:14, color:'#2980b9'},
-      {x:1048,y:103, w:22,  h:14, color:'#9b59b6', type:'moving', mx:1048, range:70, speed:3.8},
-      {x:1178,y:83,  w:25,  h:14, color:'#e67e22', type:'crumble'},
-      {x:1260,y:113, w:25,  h:14, color:'#1abc9c', type:'vmove',  my:113, vrange:80,  vspeed:3.2},
-      {x:1392,y:103, w:22,  h:14, color:'#9b59b6', type:'moving', mx:1392, range:65, speed:-4.0},
-      {x:1486,y:123, w:140, h:22, color:'#ffd700', type:'finish'},
-      {x:0,   y:460, w:2500, h:40, color:'#e74c3c', type:'lava'},
-    ], finish:1575, cameraMax:1700 },
-
+// ─── DIFFICULTY META ────────────────────────────────────────────────────────
+const DIFF = [
+  {label:'EASY',         color:'#7fdbff', bg:0},   // 1
+  {label:'EASY',         color:'#7fdbff', bg:0},   // 2
+  {label:'EASY',         color:'#7fdbff', bg:0},   // 3
+  {label:'EASY',         color:'#7fdbff', bg:0},   // 4
+  {label:'EASY',         color:'#7fdbff', bg:0},   // 5
+  {label:'NORMAL',       color:'#2ecc71', bg:1},   // 6
+  {label:'NORMAL',       color:'#2ecc71', bg:1},   // 7
+  {label:'NORMAL',       color:'#2ecc71', bg:1},   // 8
+  {label:'NORMAL',       color:'#2ecc71', bg:1},   // 9
+  {label:'NORMAL',       color:'#2ecc71', bg:1},   // 10
+  {label:'HARD',         color:'#9b59b6', bg:2},   // 11
+  {label:'HARD',         color:'#9b59b6', bg:2},   // 12
+  {label:'HARD',         color:'#9b59b6', bg:2},   // 13
+  {label:'HARD',         color:'#9b59b6', bg:2},   // 14
+  {label:'HARD',         color:'#9b59b6', bg:2},   // 15
+  {label:'HARDER',       color:'#e67e22', bg:3},   // 16
+  {label:'HARDER',       color:'#e67e22', bg:3},   // 17
+  {label:'HARDER',       color:'#e67e22', bg:3},   // 18
+  {label:'HARDER',       color:'#e67e22', bg:3},   // 19
+  {label:'HARDER',       color:'#e67e22', bg:3},   // 20
+  {label:'INSANE',       color:'#e74c3c', bg:4},   // 21
+  {label:'INSANE',       color:'#e74c3c', bg:4},   // 22
+  {label:'INSANE',       color:'#e74c3c', bg:4},   // 23
+  {label:'INSANE',       color:'#e74c3c', bg:4},   // 24
+  {label:'INSANE',       color:'#e74c3c', bg:4},   // 25
+  {label:'EASY DEMON 😈',   color:'#c0392b', bg:5},// 26
+  {label:'MEDIUM DEMON 😈😈', color:'#ff4500', bg:6},// 27
+  {label:'HARD DEMON 😈😈😈', color:'#ff0000', bg:7},// 28
+  {label:'INSANE DEMON 😈😈😈😈',color:'#ff6347',bg:8},// 29
+  {label:'EXTREME DEMON ☠',  color:'#ffd700', bg:9},// 30
 ];
 
-// ── PHYSICS CONSTANTS ─────────────────────────────────────────────────────────
-const GRAVITY      = 0.55;
-const JUMP_FORCE   = -13;
-const SPEED        = 4.5;
-const BOUNCE_FORCE = -18;
-const CRUMBLE_TIME = 55; // frames before platform falls
+const BGS = [
+  ['#16213e','#0f3460'], // easy
+  ['#0d2e1a','#0a4a2a'], // normal
+  ['#1a0533','#4a0e8f'], // hard
+  ['#2a0a00','#5a1500'], // harder
+  ['#0d0000','#2a0000'], // insane
+  ['#080008','#180018'], // easy demon
+  ['#080400','#1a0c00'], // medium demon
+  ['#050000','#120000'], // hard demon
+  ['#020202','#0a0202'], // insane demon
+  ['#000000','#0a0800'], // extreme demon
+];
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
-let player, camera, keys, deaths, stage, gameState;
-let particles = [];
+// ─── STAGES ─────────────────────────────────────────────────────────────────
+// finish = world x of finish flag platform (player.x + player.w > finish triggers win)
+function lava(){ return {x:0, y:460, w:3500, h:40, color:'#e74c3c', type:'lava'}; }
+function fin(x,y,w){ return {x, y, w:w||130, h:22, color:'#27ae60', type:'finish'}; }
+function plat(x,y,w,h,c){ return {x,y,w:w||80,h:h||22,color:c||'#3498db'}; }
+function mov(x,y,w,mx,range,speed){ return {x,y,w,h:20,color:'#9b59b6',type:'moving',mx,range,speed}; }
+function vm(x,y,w,my,vrange,vspeed){ return {x,y,w,h:20,color:'#1abc9c',type:'vmove',my,vrange,vspeed}; }
+function bou(x,y,w){ return {x,y,w:w||55,h:18,color:'#e74c3c',type:'bounce'}; }
+function cru(x,y,w){ return {x,y,w:w||70,h:20,color:'#e67e22',type:'crumble'}; }
+function safe(x,y,w){ return {x,y,w:w||90,h:20,color:'#2980b9'}; }
 
-function initPlayer() {
-  player = { x:40, y:350, w:28, h:34, vx:0, vy:0,
-             onGround:false, jumps:0, color:'#ff6b6b',
-             angle:0, _ridingVMove:null };
+const STAGES = [
+// ─ 1 First Steps (EASY) ────────────────────────────────────────────────────
+{ name:'First Steps', finish:780,cameraMax:1100, platforms:[
+  plat(0,420,200,28,'#27ae60'), plat(220,400,175,24), plat(420,385,165,24),
+  plat(610,370,155,24), fin(790,355,155), lava() ]},
+
+// ─ 2 Baby Jumps (EASY) ──────────────────────────────────────────────────────
+{ name:'Baby Jumps', finish:970,cameraMax:1280, platforms:[
+  plat(0,420,190,26,'#27ae60'), plat(220,400,160,24), plat(415,382,150,24),
+  plat(600,395,148,24), plat(785,372,145,24), fin(970,352,148), lava() ]},
+
+// ─ 3 Step Up (EASY) ─────────────────────────────────────────────────────────
+{ name:'Step Up', finish:1070,cameraMax:1380, platforms:[
+  plat(0,420,180,26,'#27ae60'), plat(210,402,152,24), plat(395,378,142,24),
+  plat(572,352,136,24), plat(742,328,132,24), plat(908,304,128,24), fin(1070,278,140), lava() ]},
+
+// ─ 4 Gap Training (EASY) ────────────────────────────────────────────────────
+{ name:'Gap Training', finish:1225,cameraMax:1540, platforms:[
+  plat(0,420,172,26,'#27ae60'), plat(202,402,142,24), plat(382,388,132,24),
+  plat(552,368,128,24), plat(722,348,124,24), plat(894,328,120,24),
+  plat(1062,308,120,24), fin(1225,288,140), lava() ]},
+
+// ─ 5 First Movers (EASY) ────────────────────────────────────────────────────
+{ name:'First Movers', finish:1060,cameraMax:1370, platforms:[
+  plat(0,420,170,26,'#27ae60'), plat(200,398,132,24),
+  mov(372,378,120,372,50,1.0), plat(552,358,120,24),
+  mov(722,338,116,722,45,-1.1), plat(895,318,118,24), fin(1062,298,130), lava() ]},
+
+// ─ 6 Moving Along (NORMAL) ──────────────────────────────────────────────────
+{ name:'Moving Along', finish:1190,cameraMax:1510, platforms:[
+  plat(0,420,165,26,'#27ae60'), mov(196,392,110,196,70,1.3),
+  mov(362,362,105,362,65,-1.5), plat(528,338,118,22),
+  mov(698,358,105,698,60,1.7), mov(862,318,100,862,58,-1.4),
+  plat(1026,298,114,22), fin(1192,272,130), lava() ]},
+
+// ─ 7 Bounce House (NORMAL) ──────────────────────────────────────────────────
+{ name:'Bounce House', finish:1095,cameraMax:1410, platforms:[
+  plat(0,420,160,26,'#27ae60'), plat(190,402,92,22),
+  bou(312,382,68), plat(410,230,100,22), plat(542,256,90,22),
+  bou(662,240,65), plat(756,112,94,22), plat(882,158,90,22),
+  bou(1002,208,65), fin(1096,96,130), lava() ]},
+
+// ─ 8 Elevators (NORMAL) ─────────────────────────────────────────────────────
+{ name:'Elevators', finish:970,cameraMax:1285, platforms:[
+  plat(0,420,155,26,'#27ae60'), vm(185,392,95,392,110,1.6),
+  vm(342,325,90,325,100,-1.8), plat(498,312,108,22),
+  vm(662,292,90,292,120,2.0), vm(818,252,85,220,100,-1.6), fin(972,218,130), lava() ]},
+
+// ─ 9 Mixed Bag (NORMAL) ─────────────────────────────────────────────────────
+{ name:'Mixed Bag', finish:1045,cameraMax:1360, platforms:[
+  plat(0,420,155,26,'#27ae60'), mov(186,388,95,186,65,1.4),
+  bou(348,362,65), plat(447,218,90,22), vm(592,252,85,252,100,1.9),
+  mov(742,282,90,742,65,-1.6), plat(898,252,90,22), fin(1047,222,130), lava() ]},
+
+// ─ 10 Crumble Intro (NORMAL) ────────────────────────────────────────────────
+{ name:'Crumble Intro', finish:1140,cameraMax:1458, platforms:[
+  plat(0,420,150,26,'#27ae60'), cru(180,392,100), safe(312,368,108),
+  cru(462,342,95), cru(592,318,90), safe(722,298,104),
+  cru(872,272,90), cru(1002,248,90), fin(1142,222,130), lava() ]},
+
+// ─ 11 Speed Up (HARD) ───────────────────────────────────────────────────────
+{ name:'Speed Up', finish:1080,cameraMax:1398, platforms:[
+  plat(0,420,145,26,'#27ae60'), mov(176,392,80,176,75,2.0),
+  mov(326,358,76,326,70,-2.2), plat(482,328,88,20),
+  mov(632,348,76,632,70,2.3), mov(788,308,72,788,65,-2.0),
+  plat(932,288,84,20), fin(1082,258,130), lava() ]},
+
+// ─ 12 Elevator Hell (HARD) ──────────────────────────────────────────────────
+{ name:'Elevator Hell', finish:1062,cameraMax:1378, platforms:[
+  plat(0,420,140,26,'#27ae60'), vm(172,388,78,388,130,2.0),
+  vm(322,308,75,308,120,-2.3), plat(478,298,88,20),
+  vm(628,272,75,272,130,2.2), vm(778,242,72,210,110,-2.0),
+  vm(922,228,72,228,100,2.5), fin(1063,198,130), lava() ]},
+
+// ─ 13 Crumble Rush (HARD) ───────────────────────────────────────────────────
+{ name:'Crumble Rush', finish:1245,cameraMax:1562, platforms:[
+  plat(0,420,140,26,'#27ae60'), cru(172,392,80), cru(286,368,75),
+  cru(397,342,75), safe(512,318,88), cru(652,292,72),
+  cru(762,268,72), cru(872,242,70), safe(992,222,84),
+  cru(1128,198,70), fin(1247,172,130), lava() ]},
+
+// ─ 14 Bounce & Roll (HARD) ──────────────────────────────────────────────────
+{ name:'Bounce & Roll', finish:1092,cameraMax:1408, platforms:[
+  plat(0,420,135,26,'#27ae60'), plat(166,398,70,20),
+  bou(266,378,60), plat(361,222,80,20), mov(502,242,72,502,70,2.1),
+  bou(642,258,60), plat(726,118,80,20), vm(872,162,70,162,90,2.0),
+  bou(1007,202,60), fin(1094,88,130), lava() ]},
+
+// ─ 15 Tight Squeeze (HARD) ──────────────────────────────────────────────────
+{ name:'Tight Squeeze', finish:1062,cameraMax:1378, platforms:[
+  plat(0,420,130,26,'#27ae60'), plat(162,395,55,18),
+  plat(254,370,52,18), plat(345,342,52,18), plat(447,320,50,18),
+  plat(550,340,50,18), plat(652,308,50,18), plat(756,278,48,18),
+  plat(858,258,48,18), plat(962,238,48,18), fin(1063,212,130), lava() ]},
+
+// ─ 16 Precision (HARDER) ────────────────────────────────────────────────────
+{ name:'Precision', finish:1082,cameraMax:1398, platforms:[
+  plat(0,420,125,26,'#27ae60'), mov(156,392,45,156,75,2.4),
+  plat(286,362,42,18), mov(378,332,40,378,80,-2.6),
+  bou(512,312,45), vm(602,192,45,192,120,2.2),
+  cru(733,228,42), mov(842,252,42,842,72,2.5),
+  plat(982,228,44,18), fin(1082,202,130), lava() ]},
+
+// ─ 17 Speedway (HARDER) ─────────────────────────────────────────────────────
+{ name:'Speedway', finish:1055,cameraMax:1372, platforms:[
+  plat(0,420,120,26,'#27ae60'), mov(150,392,48,150,80,2.8),
+  mov(306,358,45,306,75,-3.0), mov(464,325,44,464,75,3.0),
+  plat(626,302,54,18), mov(746,328,44,746,70,-2.8),
+  mov(902,288,44,902,70,3.0), fin(1057,258,130), lava() ]},
+
+// ─ 18 Crumble Chaos (HARDER) ────────────────────────────────────────────────
+{ name:'Crumble Chaos', finish:1192,cameraMax:1510, platforms:[
+  plat(0,420,120,26,'#27ae60'), cru(150,392,70), mov(292,362,42,292,70,2.3),
+  cru(432,332,65), cru(550,302,60), safe(670,278,78),
+  cru(812,252,58), mov(937,272,42,937,65,-2.5),
+  cru(1072,248,58), fin(1193,222,130), lava() ]},
+
+// ─ 19 Vertical Madness (HARDER) ─────────────────────────────────────────────
+{ name:'Vertical Madness', finish:1142,cameraMax:1460, platforms:[
+  plat(0,420,115,26,'#27ae60'), vm(146,388,45,388,130,2.4),
+  mov(262,322,43,262,80,2.7), vm(412,278,44,278,130,-2.6),
+  cru(558,258,42), bou(660,272,45), vm(752,162,44,162,130,2.8),
+  cru(892,212,42), mov(997,238,43,997,65,-2.8), fin(1142,212,130), lava() ]},
+
+// ─ 20 Gauntlet I (HARDER) ───────────────────────────────────────────────────
+{ name:'Gauntlet I', finish:1207,cameraMax:1522, platforms:[
+  plat(0,420,115,26,'#27ae60'), mov(146,390,44,146,80,2.6),
+  cru(287,360,55), bou(402,332,45), vm(492,202,45,202,130,2.3),
+  mov(638,232,43,638,75,-2.9), cru(782,212,52), vm(903,188,44,188,110,2.6),
+  mov(1052,218,43,1052,65,2.8), fin(1208,188,130), lava() ]},
+
+// ─ 21 Insane Entry (INSANE) ─────────────────────────────────────────────────
+{ name:'Insane Entry', finish:1167,cameraMax:1482, platforms:[
+  plat(0,420,110,26,'#27ae60'), plat(141,392,36,16),
+  mov(234,360,33,234,80,2.8), vm(380,320,33,320,130,2.5),
+  bou(468,292,35), vm(552,178,35,178,140,2.8),
+  cru(688,208,32), mov(788,228,32,788,75,-3.0),
+  cru(923,208,32), vm(1027,182,34,182,120,2.7), fin(1167,162,130), lava() ]},
+
+// ─ 22 Speed Hell (INSANE) ───────────────────────────────────────────────────
+{ name:'Speed Hell', finish:1182,cameraMax:1498, platforms:[
+  plat(0,420,108,26,'#27ae60'), mov(138,392,34,138,85,3.2),
+  mov(295,358,32,295,80,-3.4), mov(454,325,32,454,78,3.3),
+  plat(618,298,44,16), mov(732,322,32,732,75,-3.2),
+  vm(882,272,33,272,120,2.8), mov(1023,298,32,1023,70,3.4), fin(1183,268,130), lava() ]},
+
+// ─ 23 Crumble Insane (INSANE) ───────────────────────────────────────────────
+{ name:'Crumble Insane', finish:1232,cameraMax:1548, platforms:[
+  plat(0,420,108,26,'#27ae60'), cru(138,392,60), cru(248,368,55),
+  vm(367,338,33,338,130,2.7), cru(507,308,52), cru(618,282,50),
+  safe(732,258,64), cru(862,232,50), vm(977,258,33,258,120,-2.8),
+  cru(1118,232,50), fin(1233,208,130), lava() ]},
+
+// ─ 24 Death Run (INSANE) ────────────────────────────────────────────────────
+{ name:'Death Run', finish:1187,cameraMax:1503, platforms:[
+  plat(0,420,106,26,'#27ae60'), mov(137,392,32,137,80,3.0),
+  bou(282,362,35), vm(362,228,33,228,150,3.0),
+  cru(498,252,32), mov(602,272,32,602,78,-3.3),
+  bou(733,252,35), vm(810,122,33,122,130,3.0),
+  mov(948,162,32,948,72,3.2), cru(1082,188,32), fin(1188,162,130), lava() ]},
+
+// ─ 25 Inferno (INSANE) ──────────────────────────────────────────────────────
+{ name:'Inferno', finish:1347,cameraMax:1662, platforms:[
+  plat(0,420,104,26,'#27ae60'), mov(135,392,33,135,82,3.2),
+  cru(292,360,50), vm(408,328,32,328,140,3.0), bou(492,298,34),
+  cru(568,178,32), mov(677,202,32,677,78,-3.3),
+  vm(822,172,32,172,130,3.2), cru(962,198,32), mov(1063,218,32,1063,68,3.3),
+  vm(1202,188,32,188,120,-3.0), fin(1348,158,130), lava() ]},
+
+// ─ 26 Easy Demon (EASY DEMON) ───────────────────────────────────────────────
+{ name:'Easy Demon', finish:1467,cameraMax:1792, platforms:[
+  plat(0,420,100,26,'#27ae60'), plat(130,392,28,16),
+  mov(210,360,24,210,85,3.5), cru(368,328,48),
+  vm(482,296,26,296,140,3.2), bou(565,266,28),
+  cru(640,148,24), mov(742,172,24,742,80,-3.7),
+  vm(892,142,26,142,130,3.3), cru(1030,168,24),
+  mov(1130,188,24,1130,72,3.8), bou(1258,208,28),
+  vm(1332,92,26,92,120,3.5), fin(1468,78,130), lava() ]},
+
+// ─ 27 Medium Demon ──────────────────────────────────────────────────────────
+{ name:'Medium Demon', finish:1607,cameraMax:1932, platforms:[
+  plat(0,420,98,26,'#27ae60'), cru(128,392,44),
+  mov(243,360,22,243,88,3.8), vm(402,326,24,326,145,3.4),
+  bou(488,296,25), cru(560,172,20), mov(657,198,22,657,82,-4.0),
+  cru(812,172,20), vm(902,148,23,148,135,3.5),
+  mov(1043,172,22,1043,76,4.0), bou(1168,192,25),
+  cru(1240,82,20), vm(1330,102,23,102,120,3.7),
+  mov(1470,122,22,1470,70,-4.2), fin(1608,92,130), lava() ]},
+
+// ─ 28 Hard Demon ────────────────────────────────────────────────────────────
+{ name:'Hard Demon', finish:1625,cameraMax:1950, platforms:[
+  plat(0,420,95,26,'#27ae60'), mov(125,392,20,125,88,4.0),
+  cru(287,360,40), vm(400,326,21,326,150,3.7),
+  bou(482,293,22), mov(554,178,20,554,85,-4.3),
+  cru(715,152,18), vm(805,128,20,128,140,4.0),
+  mov(943,158,20,943,78,4.2), cru(1095,132,18),
+  bou(1178,152,22), vm(1250,50,20,50,115,4.0),
+  mov(1386,82,20,1386,72,-4.5), cru(1532,62,18), fin(1626,58,130), lava() ]},
+
+// ─ 29 Insane Demon ──────────────────────────────────────────────────────────
+{ name:'Insane Demon', finish:1797,cameraMax:2122, platforms:[
+  plat(0,420,92,26,'#27ae60'), plat(122,392,18,14),
+  mov(197,360,18,197,90,4.5), cru(360,328,35),
+  vm(470,293,18,293,155,4.0), bou(547,260,20),
+  cru(617,150,16), mov(707,175,18,707,85,-4.8),
+  vm(864,145,18,145,145,4.3), mov(1000,170,18,1000,80,4.7),
+  cru(1150,145,16), bou(1230,165,20), vm(1300,55,18,55,125,4.5),
+  mov(1434,90,18,1434,75,-5.0), cru(1582,65,16),
+  vm(1662,85,18,85,115,4.7), fin(1798,60,130), lava() ]},
+
+// ─ 30 EXTREME DEMON ─────────────────────────────────────────────────────────
+{ name:'EXTREME DEMON', finish:2667,cameraMax:2967, platforms:[
+  plat(0,420,88,26,'#27ae60'), plat(118,392,16,13),
+  mov(190,360,15,190,92,5.0), cru(357,326,30),
+  vm(464,291,16,291,160,4.5), bou(539,258,18),
+  cru(608,142,14), mov(697,168,15,697,88,-5.3),
+  vm(855,138,16,138,150,5.0), mov(992,162,15,992,82,5.2),
+  cru(1145,138,14), bou(1223,158,18), vm(1294,48,16,48,130,5.0),
+  mov(1430,82,15,1430,78,-5.5), cru(1578,58,14),
+  vm(1652,78,16,78,120,5.3), mov(1788,102,15,1788,72,5.5),
+  cru(1930,78,14), bou(2004,98,18), vm(2074,43,16,43,110,5.5),
+  mov(2202,68,15,2202,68,-6.0), cru(2342,48,14),
+  vm(2420,63,16,63,105,5.8), mov(2555,83,15,2555,65,6.2), fin(2668,63,140), lava() ]},
+];
+
+// ─── PHYSICS ────────────────────────────────────────────────────────────────
+const GRAVITY=0.55, JUMP=-13, SPEED=4.5, BOUNCE=-18, CRUMBLE_T=52;
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let player, camera, keys={}, deathCount=0, stage=0, gameState='menu', particles=[];
+
+function initPlayer(){
+  player={x:40,y:350,w:28,h:34,vx:0,vy:0,onGround:false,jumps:0,color:'#ff6b6b',angle:0,_rideV:null};
 }
-
-function initStage(s) {
-  stage = s;
-  camera = { x:0 };
-  particles = [];
+function initStage(s){
+  stage=s; camera={x:0}; particles=[];
   initPlayer();
-  STAGES[stage].platforms.forEach(p => {
-    if (p.type === 'moving') { p.x = p.mx; p.dir = 1; }
-    if (p.type === 'vmove')  { p.y = p.my; p.vdir = 1; p._deltaY = 0; }
-    if (p.type === 'crumble'){ p.crumbleTimer = 0; p.crumbled = false; p.activated = false; }
+  STAGES[s].platforms.forEach(p=>{
+    if(p.type==='moving') { p.x=p.mx; p.dir=1; }
+    if(p.type==='vmove')  { p.y=p.my; p.vdir=1; p._dy=0; }
+    if(p.type==='crumble'){ p.ct=0; p.crumbled=false; p.active=false; }
   });
   updateUI();
 }
+function init(){ deathCount=0; stage=0; gameState='playing'; initStage(0); }
 
-function init() {
-  keys = {};
-  deaths = 0;
-  stage  = 0;
-  gameState = 'playing';
-  initStage(0);
-}
-
-// ── INPUT ─────────────────────────────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  keys[e.code] = true;
-  if ((e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW') && gameState==='playing') {
-    if (player.jumps < 2) {
-      player.vy = JUMP_FORCE * (player.jumps===1 ? 0.82 : 1);
-      player.jumps++;
-      player.onGround = false;
-    }
+// ─── INPUT ────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if((e.code==='Space'||e.code==='ArrowUp'||e.code==='KeyW')&&gameState==='playing'){
+    if(player.jumps<2){ player.vy=JUMP*(player.jumps===1?.82:1); player.jumps++; player.onGround=false; }
   }
   e.preventDefault();
 });
-document.addEventListener('keyup', e => { keys[e.code] = false; });
+document.addEventListener('keyup',e=>{ keys[e.code]=false; });
 
-// ── UPDATE ────────────────────────────────────────────────────────────────────
-function update() {
-  if (gameState !== 'playing') return;
-  const sd = STAGES[stage];
+// ─── UPDATE ───────────────────────────────────────────────────────────────────
+function update(){
+  if(gameState!=='playing') return;
+  const sd=STAGES[stage];
 
-  // Apply previous frame vmove carry
-  if (player._ridingVMove) {
-    player.y += player._ridingVMove._deltaY;
-    player._ridingVMove = null;
-  }
+  // carry vmove
+  if(player._rideV){ player.y+=player._rideV._dy; player._rideV=null; }
 
-  // Move platforms
-  sd.platforms.forEach(p => {
-    if (p.type === 'moving') {
-      if (!p.dir) p.dir = 1;
-      p.x += Math.abs(p.speed) * p.dir;
-      if (p.x > p.mx + p.range || p.x < p.mx - p.range) p.dir *= -1;
+  // move platforms
+  sd.platforms.forEach(p=>{
+    if(p.type==='moving'){
+      if(!p.dir) p.dir=1;
+      p.x+=Math.abs(p.speed)*p.dir;
+      if(p.x>p.mx+p.range||p.x<p.mx-p.range) p.dir*=-1;
     }
-    if (p.type === 'vmove') {
-      if (!p.vdir) p.vdir = 1;
-      const prevY = p.y;
-      p.y += p.vspeed * p.vdir;
-      if (p.y > p.my + p.vrange || p.y < p.my - p.vrange) p.vdir *= -1;
-      p._deltaY = p.y - prevY;
+    if(p.type==='vmove'){
+      if(!p.vdir) p.vdir=1;
+      const py=p.y; p.y+=p.vspeed*p.vdir;
+      if(p.y>p.my+p.vrange||p.y<p.my-p.vrange) p.vdir*=-1;
+      p._dy=p.y-py;
     }
-    if (p.type === 'crumble' && p.activated && !p.crumbled) {
-      p.crumbleTimer++;
-      if (p.crumbleTimer >= CRUMBLE_TIME) p.crumbled = true;
-    }
+    if(p.type==='crumble'&&p.active&&!p.crumbled){ p.ct++; if(p.ct>=CRUMBLE_T) p.crumbled=true; }
   });
 
-  // Horizontal input
-  if (keys['ArrowLeft'] || keys['KeyA'])       player.vx = -SPEED;
-  else if (keys['ArrowRight'] || keys['KeyD']) player.vx =  SPEED;
-  else player.vx *= 0.75;
+  // move player
+  if(keys['ArrowLeft']||keys['KeyA'])      player.vx=-SPEED;
+  else if(keys['ArrowRight']||keys['KeyD']) player.vx=SPEED;
+  else player.vx*=.75;
+  player.vy+=GRAVITY;
+  player.x+=player.vx; player.y+=player.vy;
+  if(!player.onGround) player.angle+=player.vx*.05; else player.angle*=.8;
+  player.onGround=false;
 
-  player.vy += GRAVITY;
-  player.x  += player.vx;
-  player.y  += player.vy;
+  // collisions
+  sd.platforms.forEach(p=>{
+    if(p.type==='lava'){ if(hitW(player,p)) die(); return; }
+    if(p.type==='crumble'&&p.crumbled) return;
+    if(!hit(player.x,player.y,player.w,player.h,p.x,p.y,p.w,p.h)) return;
+    const fL=player.x+player.w-p.x, fR=p.x+p.w-player.x,
+          fT=player.y+player.h-p.y, fB=p.y+p.h-player.y,
+          mn=Math.min(fL,fR,fT,fB);
+    if(mn===fT&&player.vy>=0){
+      player.y=p.y-player.h;
+      if(p.type==='bounce'){ player.vy=BOUNCE; player.jumps=0; }
+      else{ player.vy=0; player.onGround=true; player.jumps=0;
+            if(p.type==='crumble') p.active=true;
+            if(p.type==='vmove')   player._rideV=p; }
+      if(p.type==='moving') player.x+=Math.abs(p.speed)*p.dir;
+    } else if(mn===fB&&player.vy<0){ player.y=p.y+p.h; player.vy=1; }
+      else if(mn===fL){ player.x=p.x-player.w; player.vx=0; }
+      else             { player.x=p.x+p.w;      player.vx=0; }
+  });
 
-  // Spin when airborne
-  if (!player.onGround) player.angle += player.vx * 0.05;
-  else player.angle *= 0.8;
+  if(player.y>H+80) die();
 
-  player.onGround = false;
+  // camera
+  camera.x+=(player.x-W/3-camera.x)*.1;
+  camera.x=Math.max(0,Math.min(camera.x,sd.cameraMax-W));
 
-  // Collisions
-  sd.platforms.forEach(p => {
-    if (p.type === 'lava') {
-      if (overlapWorld(player, p)) die();
+  // finish
+  if(player.x+player.w>sd.finish) winStage();
+
+  // particles
+  particles=particles.filter(p=>p.life>0);
+  particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=.4; p.life--; });
+}
+
+function hit(ax,ay,aw,ah,bx,by,bw,bh){ return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by; }
+function hitW(a,b){ return hit(a.x,a.y,a.w,a.h,b.x-camera.x,b.y,b.w,b.h); }
+
+function spawnParts(wx,wy){
+  for(let i=0;i<18;i++){
+    const a=Math.random()*Math.PI*2, s=2+Math.random()*5;
+    particles.push({x:wx-camera.x,y:wy,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,
+      life:35+Math.random()*20,sz:4+Math.random()*6,
+      color:['#ff6b6b','#feca57','#ff9ff3','#ff4757','#fff'][Math.floor(Math.random()*5)]});
+  }
+}
+function die(){ spawnParts(player.x+14,player.y+17); playScream(); deathCount++; initStage(stage); }
+function winStage(){
+  if(stage<STAGES.length-1){ stage++; initStage(stage); }
+  else{ gameState='win'; showOverlay('🏆 YOU WIN!','All 30 stages complete!<br>Deaths: '+deathCount,'Play Again'); }
+}
+
+// ─── DRAW ─────────────────────────────────────────────────────────────────────
+function draw(){
+  const sd=STAGES[stage];
+  const bgIdx=DIFF[stage].bg;
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,BGS[bgIdx][0]); g.addColorStop(1,BGS[bgIdx][1]);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  // stars
+  ctx.fillStyle='rgba(255,255,255,0.3)';
+  const seed=stage*137;
+  for(let i=0;i<70;i++) ctx.fillRect((seed+i*173)%W,(seed+i*97)%(H*.6),1.5,1.5);
+
+  // particles
+  particles.forEach(p=>{ ctx.globalAlpha=p.life/55; ctx.fillStyle=p.color; ctx.fillRect(p.x-p.sz/2,p.y-p.sz/2,p.sz,p.sz); });
+  ctx.globalAlpha=1;
+
+  ctx.save(); ctx.translate(-camera.x,0);
+
+  sd.platforms.forEach(p=>{
+    if(p.type==='lava'){
+      ctx.fillStyle='#c0392b'; ctx.fillRect(p.x,p.y,Math.min(p.w,W+camera.x+200),p.h);
+      const t=Date.now()/400;
+      for(let i=0;i<W+200;i+=22){ ctx.fillStyle=`rgba(255,${70+Math.sin(t+i*.3)*45},0,.65)`; ctx.fillRect(camera.x+i,p.y+2+Math.sin(t+i*.5)*4,20,9); }
       return;
     }
-    if (p.type === 'crumble' && p.crumbled) return;
-
-    if (overlapRect(player.x, player.y, player.w, player.h, p.x, p.y, p.w, p.h)) {
-      const fromLeft   = player.x + player.w - p.x;
-      const fromRight  = p.x + p.w - player.x;
-      const fromTop    = player.y + player.h - p.y;
-      const fromBottom = p.y + p.h - player.y;
-      const min = Math.min(fromLeft, fromRight, fromTop, fromBottom);
-
-      if (min === fromTop && player.vy >= 0) {
-        player.y = p.y - player.h;
-        if (p.type === 'bounce') {
-          player.vy = BOUNCE_FORCE; player.jumps = 0;
-        } else {
-          player.vy = 0; player.onGround = true; player.jumps = 0;
-          if (p.type === 'crumble') p.activated = true;
-          if (p.type === 'vmove')   player._ridingVMove = p;
-        }
-        if (p.type === 'moving') player.x += Math.abs(p.speed) * p.dir;
-      } else if (min === fromBottom && player.vy < 0) {
-        player.y = p.y + p.h; player.vy = 1;
-      } else if (min === fromLeft) {
-        player.x = p.x - player.w; player.vx = 0;
-      } else if (min === fromRight) {
-        player.x = p.x + p.w; player.vx = 0;
-      }
+    let ox=0,oy=0;
+    if(p.type==='crumble'){
+      if(p.crumbled) return;
+      if(p.active){ const f=p.ct/CRUMBLE_T; ox=(Math.random()-.5)*f*8; oy=(Math.random()-.5)*f*4; ctx.globalAlpha=1-f*.5; }
+    }
+    ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(p.x+ox+3,p.y+oy+3,p.w,p.h);
+    ctx.fillStyle=p.color; ctx.fillRect(p.x+ox,p.y+oy,p.w,p.h);
+    ctx.fillStyle='rgba(255,255,255,.17)'; ctx.fillRect(p.x+ox,p.y+oy,p.w,4);
+    ctx.globalAlpha=1;
+    if(p.type==='bounce'){ ctx.fillStyle='#fff'; ctx.font='11px Arial'; ctx.textAlign='center'; ctx.fillText('↑↑',p.x+ox+p.w/2,p.y+oy+p.h/2+4); }
+    if(p.type==='vmove'){ ctx.fillStyle='rgba(255,255,255,.38)'; ctx.font='11px Arial'; ctx.textAlign='center'; ctx.fillText('⇅',p.x+p.w/2,p.y+p.h/2+4); }
+    if(p.type==='crumble'&&p.active){ ctx.fillStyle='rgba(255,60,60,.75)'; ctx.font='9px Arial'; ctx.textAlign='center'; ctx.fillText('CRACK!',p.x+ox+p.w/2,p.y+oy-4); }
+    if(p.type==='finish'){
+      const ft=Date.now()/500;
+      ctx.fillStyle='#ffd700'; ctx.fillRect(p.x+p.w/2-2,p.y-46,4,46);
+      ctx.fillStyle='#e74c3c'; ctx.beginPath();
+      ctx.moveTo(p.x+p.w/2+2,p.y-46); ctx.lineTo(p.x+p.w/2+26+Math.sin(ft)*3,p.y-35); ctx.lineTo(p.x+p.w/2+2,p.y-24); ctx.fill();
     }
   });
 
-  // Void
-  if (player.y > H + 80) die();
-
-  // Camera
-  const target = player.x - W / 3;
-  camera.x += (target - camera.x) * 0.1;
-  camera.x  = Math.max(0, Math.min(camera.x, sd.cameraMax - W));
-
-  // Finish
-  if (player.x + camera.x > sd.finish) winStage();
-
-  // Particles
-  particles = particles.filter(p => p.life > 0);
-  particles.forEach(p => {
-    p.x += p.vx; p.y += p.vy; p.vy += 0.4;
-    p.life--;
-  });
-}
-
-function overlapRect(ax, ay, aw, ah, bx, by, bw, bh) {
-  return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
-}
-function overlapWorld(a, b) {
-  return overlapRect(a.x, a.y, a.w, a.h, b.x - camera.x, b.y, b.w, b.h);
-}
-
-function spawnParticles(wx, wy) {
-  for (let i = 0; i < 18; i++) {
-    const ang = Math.random() * Math.PI * 2;
-    const spd = 2 + Math.random() * 5;
-    particles.push({
-      x: wx - camera.x, y: wy,
-      vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd - 2,
-      life: 35 + Math.random()*20,
-      color: ['#ff6b6b','#feca57','#ff9ff3','#ff4757','#fff'][Math.floor(Math.random()*5)],
-      size: 4 + Math.random()*6,
-    });
-  }
-}
-
-function die() {
-  spawnParticles(player.x + player.w/2, player.y + player.h/2);
-  playScream();
-  deaths++;
-  initStage(stage);
-}
-
-function winStage() {
-  if (stage < STAGES.length - 1) {
-    stage++;
-    initStage(stage);
-  } else {
-    gameState = 'win';
-    showOverlay('🏆 YOU WIN! 🏆',
-      `All 10 stages complete!<br>Deaths: ${deaths}`, 'Play Again');
-  }
-}
-
-// ── DRAW ───────────────────────────────────────────────────────────────────────
-function draw() {
-  const sd = STAGES[stage];
-  // BG
-  const g = ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0, sd.bg[0]); g.addColorStop(1, sd.bg[1]);
-  ctx.fillStyle = g;
-  ctx.fillRect(0,0,W,H);
-
-  // Stars
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  const seed = stage * 137;
-  for (let i=0;i<70;i++) {
-    ctx.fillRect((seed+i*173)%W, (seed+i*97)%(H*.6), 1.5,1.5);
-  }
-
-  // Particles (drawn in screen space)
-  particles.forEach(p => {
-    ctx.globalAlpha = p.life / 55;
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
-  });
-  ctx.globalAlpha = 1;
-
+  // player
   ctx.save();
-  ctx.translate(-camera.x, 0);
+  ctx.translate(player.x+14,player.y+17); ctx.rotate(player.angle);
+  ctx.fillStyle=player.color; ctx.fillRect(-14,-17,28,34);
+  ctx.fillStyle='#fff'; ctx.fillRect(-8,-11,7,8); ctx.fillRect(1,-11,7,8);
+  ctx.fillStyle='#222'; ctx.fillRect(-6,-10,4,5); ctx.fillRect(3,-10,4,5);
+  ctx.fillStyle='rgba(255,255,255,.28)'; ctx.fillRect(-14,-17,28,6);
+  ctx.restore(); ctx.restore();
 
-  // Platforms
-  sd.platforms.forEach(p => {
-    if (p.type === 'lava') {
-      ctx.fillStyle = '#c0392b';
-      ctx.fillRect(p.x, p.y, p.w, p.h);
-      const t = Date.now()/400;
-      for (let i=0; i<p.w; i+=22) {
-        ctx.fillStyle = `rgba(255,${70+Math.sin(t+i*.3)*45},0,0.65)`;
-        ctx.fillRect(p.x+i, p.y+2+Math.sin(t+i*.5)*4, 20, 9);
-      }
-      return;
-    }
+  // stage watermark
+  ctx.fillStyle='rgba(255,255,255,.07)';
+  ctx.font='bold 68px Arial'; ctx.textAlign='center';
+  ctx.fillText(sd.name.toUpperCase(),W/2,H/2+24);
 
-    // Crumble shake
-    let ox=0, oy=0;
-    if (p.type === 'crumble') {
-      if (p.crumbled) return; // gone
-      if (p.activated) {
-        const frac = p.crumbleTimer / CRUMBLE_TIME;
-        ox = (Math.random()-.5) * frac * 8;
-        oy = (Math.random()-.5) * frac * 4;
-        ctx.globalAlpha = 1 - frac * 0.5;
-      }
-    }
-
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.28)';
-    ctx.fillRect(p.x+ox+3, p.y+oy+3, p.w, p.h);
-    // Body
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x+ox, p.y+oy, p.w, p.h);
-    // Shine
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.fillRect(p.x+ox, p.y+oy, p.w, 4);
-
-    ctx.globalAlpha = 1;
-
-    // Labels
-    if (p.type === 'bounce') {
-      ctx.fillStyle = '#fff'; ctx.font = '11px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('↑↑', p.x+p.w/2, p.y+p.h/2+4);
-    }
-    if (p.type === 'crumble' && p.activated) {
-      ctx.fillStyle = 'rgba(255,50,50,0.7)'; ctx.font = '10px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('CRUMBLE!', p.x+ox+p.w/2, p.y+oy-4);
-    }
-    if (p.type === 'vmove') {
-      // up/down arrow indicator
-      ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '11px Arial'; ctx.textAlign = 'center';
-      ctx.fillText('⇅', p.x+p.w/2, p.y+p.h/2+4);
-    }
-    if (p.type === 'finish') {
-      // Flag pole + flag
-      ctx.fillStyle = '#ffd700';
-      ctx.fillRect(p.x+p.w/2-2, p.y-44, 4, 44);
-      ctx.fillStyle = '#e74c3c';
-      const ft = Date.now()/500;
-      ctx.beginPath();
-      ctx.moveTo(p.x+p.w/2+2, p.y-44);
-      ctx.lineTo(p.x+p.w/2+24+Math.sin(ft)*3, p.y-34);
-      ctx.lineTo(p.x+p.w/2+2, p.y-24);
-      ctx.fill();
-    }
-  });
-
-  // Player
-  ctx.save();
-  ctx.translate(player.x+player.w/2, player.y+player.h/2);
-  ctx.rotate(player.angle);
-  ctx.fillStyle = player.color;
-  ctx.fillRect(-player.w/2,-player.h/2, player.w, player.h);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(-8,-11,7,8); ctx.fillRect(1,-11,7,8);
-  ctx.fillStyle = '#222';
-  ctx.fillRect(-6,-10,4,5); ctx.fillRect(3,-10,4,5);
-  ctx.fillStyle = 'rgba(255,255,255,0.28)';
-  ctx.fillRect(-player.w/2,-player.h/2, player.w, 6);
-  ctx.restore();
-
-  ctx.restore();
-
-  // Stage name watermark
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
-  ctx.font = 'bold 72px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText(sd.name.toUpperCase(), W/2, H/2+26);
-
-  // Crumble warning overlay (flash screen red briefly)
+  // stage progress bar
+  const barW=W-40, barH=4, barX=20, barY=H-12;
+  ctx.fillStyle='rgba(255,255,255,.1)'; ctx.fillRect(barX,barY,barW,barH);
+  ctx.fillStyle=DIFF[stage].color;
+  ctx.fillRect(barX,barY,barW*(stage/29),barH);
 }
 
-// ── UI ────────────────────────────────────────────────────────────────────────
-function updateUI() {
-  document.getElementById('stageDisplay').textContent   = stage+1;
-  document.getElementById('deathDisplay').textContent   = deaths;
-  document.getElementById('stageNameDisplay').textContent = STAGES[stage].name;
+// ─── UI ───────────────────────────────────────────────────────────────────────
+function updateUI(){
+  document.getElementById('stNum').textContent=stage+1;
+  document.getElementById('deaths').textContent=deathCount;
+  document.getElementById('stName').textContent=STAGES[stage].name;
+  const dl=document.getElementById('diffLabel');
+  dl.textContent=DIFF[stage].label;
+  dl.style.color=DIFF[stage].color;
+  dl.style.background='rgba(0,0,0,.4)';
+}
+function showOverlay(title,desc,btn){
+  const ov=document.getElementById('overlay');
+  ov.style.display='flex';
+  ov.innerHTML=`<h1>${title}</h1><p>${desc}</p><button id="startBtn">${btn}</button>`;
+  document.getElementById('startBtn').onclick=()=>{ ov.style.display='none'; init(); gameState='playing'; };
 }
 
-function showOverlay(title, desc, btn) {
-  const ov = document.getElementById('overlay');
-  ov.style.display = 'flex';
-  ov.innerHTML = `<h1>${title}</h1><p>${desc}</p><button id="startBtn">${btn}</button>`;
-  document.getElementById('startBtn').onclick = () => {
-    ov.style.display = 'none';
-    init(); gameState = 'playing';
-  };
-}
+// ─── AUDIO ────────────────────────────────────────────────────────────────────
+let audioCtx=null,phonkId=null,pNext=0,pStep=0,screamCD=0,screamTxt='',screamT=0;
+const BPM=135,ST=60/BPM/4;
+const KP=[1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0];
+const SP=[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0];
+const HP=[1,0,1,1,0,1,1,0,1,1,1,1,0,1,1,0];
+const BP=[55,0,0,55,0,0,55,0,49,0,0,0,52,0,0,0];
 
-// ── AUDIO ─────────────────────────────────────────────────────────────────────
-let audioCtx = null, phonkIntervalId = null;
-let phonkNextTime = 0, phonkCurrentStep = 0;
-let screamCooldown = 0;
-const BPM = 135, STEP = 60/BPM/4;
+function initAudio(){ if(audioCtx) return; audioCtx=new(window.AudioContext||window.webkitAudioContext)(); startPhonk(); }
+function dc(a){ const n=256,c=new Float32Array(n); for(let i=0;i<n;i++){const x=(i*2)/n-1;c[i]=((Math.PI+a)*x)/(Math.PI+a*Math.abs(x));} return c; }
+function kick(t){ const g=audioCtx.createGain(); g.gain.setValueAtTime(1.8,t); g.gain.exponentialRampToValueAtTime(.001,t+.5); g.connect(audioCtx.destination); const o=audioCtx.createOscillator(); o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(38,t+.4); o.connect(g); o.start(t); o.stop(t+.5); }
+function snare(t){ const sz=audioCtx.sampleRate*.18,b=audioCtx.createBuffer(1,sz,audioCtx.sampleRate),d=b.getChannelData(0); for(let i=0;i<sz;i++)d[i]=Math.random()*2-1; const ns=audioCtx.createBufferSource(); ns.buffer=b; const ng=audioCtx.createGain(); ng.gain.setValueAtTime(.5,t); ng.gain.exponentialRampToValueAtTime(.001,t+.18); ns.connect(ng); ng.connect(audioCtx.destination); ns.start(t); ns.stop(t+.2); }
+function hat(t){ const sz=audioCtx.sampleRate*.05,b=audioCtx.createBuffer(1,sz,audioCtx.sampleRate),d=b.getChannelData(0); for(let i=0;i<sz;i++)d[i]=Math.random()*2-1; const ns=audioCtx.createBufferSource(); ns.buffer=b; const f=audioCtx.createBiquadFilter(); f.type='highpass'; f.frequency.value=8000; const g=audioCtx.createGain(); g.gain.setValueAtTime(.25,t); g.gain.exponentialRampToValueAtTime(.001,t+.05); ns.connect(f); f.connect(g); g.connect(audioCtx.destination); ns.start(t); ns.stop(t+.06); }
+function bass(t,fr){ if(!fr) return; const g=audioCtx.createGain(); g.gain.setValueAtTime(.7,t); g.gain.exponentialRampToValueAtTime(.001,t+ST*3.5); const d=audioCtx.createWaveShaper(); d.curve=dc(15); g.connect(d); d.connect(audioCtx.destination); const o=audioCtx.createOscillator(); o.frequency.setValueAtTime(fr,t); o.frequency.exponentialRampToValueAtTime(fr*.88,t+ST*2.5); o.connect(g); o.start(t); o.stop(t+ST*4); }
+function cowbell(t){ const g=audioCtx.createGain(); g.gain.setValueAtTime(.18,t); g.gain.exponentialRampToValueAtTime(.001,t+.12); g.connect(audioCtx.destination); [562,845].forEach(f=>{const o=audioCtx.createOscillator(); o.type='square'; o.frequency.value=f; o.connect(g); o.start(t); o.stop(t+.12);}); }
+function sched(){ if(!audioCtx) return; while(pNext<audioCtx.currentTime+.1){ const s=pStep%16,t=pNext; if(KP[s])kick(t); if(SP[s])snare(t); if(HP[s])hat(t); if(BP[s])bass(t,BP[s]); if(s===8)cowbell(t); pNext+=ST; pStep++; } }
+function startPhonk(){ if(!audioCtx) return; pNext=audioCtx.currentTime+.05; pStep=0; if(phonkId)clearInterval(phonkId); phonkId=setInterval(sched,25); }
 
-const KICK_PAT  = [1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0];
-const SNARE_PAT = [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0];
-const HIHAT_PAT = [1,0,1,1, 0,1,1,0, 1,1,1,1, 0,1,1,0];
-const BASS_HZ   = [55,0,0,55, 0,0,55,0, 49,0,0,0, 52,0,0,0];
-
-function initAudio() {
-  if (audioCtx) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  startPhonk();
-}
-
-function makeDistortionCurve(amt) {
-  const n=256, c=new Float32Array(n);
-  for(let i=0;i<n;i++){const x=(i*2)/n-1; c[i]=((Math.PI+amt)*x)/(Math.PI+amt*Math.abs(x));}
-  return c;
-}
-function playKick(t) {
-  const g=audioCtx.createGain(); g.gain.setValueAtTime(1.8,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.5); g.connect(audioCtx.destination);
-  const o=audioCtx.createOscillator(); o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(38,t+0.4); o.connect(g); o.start(t); o.stop(t+0.5);
-}
-function playSnare(t) {
-  const sz=audioCtx.sampleRate*0.18, buf=audioCtx.createBuffer(1,sz,audioCtx.sampleRate), d=buf.getChannelData(0);
-  for(let i=0;i<sz;i++) d[i]=Math.random()*2-1;
-  const ns=audioCtx.createBufferSource(); ns.buffer=buf;
-  const ng=audioCtx.createGain(); ng.gain.setValueAtTime(0.5,t); ng.gain.exponentialRampToValueAtTime(0.001,t+0.18);
-  ns.connect(ng); ng.connect(audioCtx.destination); ns.start(t); ns.stop(t+0.2);
-  const o=audioCtx.createOscillator(); o.type='triangle'; o.frequency.setValueAtTime(220,t); o.frequency.exponentialRampToValueAtTime(100,t+0.1);
-  const og=audioCtx.createGain(); og.gain.setValueAtTime(0.35,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.12);
-  o.connect(og); og.connect(audioCtx.destination); o.start(t); o.stop(t+0.15);
-}
-function playHihat(t) {
-  const sz=audioCtx.sampleRate*0.05, buf=audioCtx.createBuffer(1,sz,audioCtx.sampleRate), d=buf.getChannelData(0);
-  for(let i=0;i<sz;i++) d[i]=Math.random()*2-1;
-  const ns=audioCtx.createBufferSource(); ns.buffer=buf;
-  const f=audioCtx.createBiquadFilter(); f.type='highpass'; f.frequency.value=8000;
-  const g=audioCtx.createGain(); g.gain.setValueAtTime(0.25,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.05);
-  ns.connect(f); f.connect(g); g.connect(audioCtx.destination); ns.start(t); ns.stop(t+0.06);
-}
-function playBass(t,freq) {
-  if(!freq) return;
-  const g=audioCtx.createGain(); g.gain.setValueAtTime(0.7,t); g.gain.exponentialRampToValueAtTime(0.001,t+STEP*3.5);
-  const dist=audioCtx.createWaveShaper(); dist.curve=makeDistortionCurve(15);
-  g.connect(dist); dist.connect(audioCtx.destination);
-  const o=audioCtx.createOscillator(); o.type='sine';
-  o.frequency.setValueAtTime(freq,t); o.frequency.exponentialRampToValueAtTime(freq*0.88,t+STEP*2.5);
-  o.connect(g); o.start(t); o.stop(t+STEP*4);
-}
-function playCowbell(t) {
-  const g=audioCtx.createGain(); g.gain.setValueAtTime(0.18,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.12); g.connect(audioCtx.destination);
-  [562,845].forEach(f=>{const o=audioCtx.createOscillator(); o.type='square'; o.frequency.value=f; o.connect(g); o.start(t); o.stop(t+0.12);});
-}
-function schedulePhonk() {
+function playScream(){
   if(!audioCtx) return;
-  while(phonkNextTime < audioCtx.currentTime+0.1) {
-    const s=phonkCurrentStep%16, t=phonkNextTime;
-    if(KICK_PAT[s])  playKick(t);
-    if(SNARE_PAT[s]) playSnare(t);
-    if(HIHAT_PAT[s]) playHihat(t);
-    if(BASS_HZ[s])   playBass(t,BASS_HZ[s]);
-    if(s===8)        playCowbell(t);
-    phonkNextTime+=STEP; phonkCurrentStep++;
-  }
-}
-function startPhonk() {
-  if(!audioCtx) return;
-  phonkNextTime=audioCtx.currentTime+0.05; phonkCurrentStep=0;
-  if(phonkIntervalId) clearInterval(phonkIntervalId);
-  phonkIntervalId=setInterval(schedulePhonk,25);
-}
-
-let screamText='', screamTimer=0;
-function playScream() {
-  if(!audioCtx) return;
-  const now=Date.now();
-  if(now-screamCooldown<800) return;
-  screamCooldown=now;
+  const now=Date.now(); if(now-screamCD<800) return; screamCD=now;
   const phrases=['AAAAAAH!','NOOOO!','AGHHHH!','HELP!!!','NOT AGAIN!','WHY?!','AAAHH!'];
-  screamText=phrases[Math.floor(Math.random()*phrases.length)];
-  screamTimer=75;
-
+  screamTxt=phrases[Math.floor(Math.random()*phrases.length)]; screamT=75;
   const t=audioCtx.currentTime;
-  const dist=audioCtx.createWaveShaper(); dist.curve=makeDistortionCurve(100); dist.oversample='4x';
-  const mg=audioCtx.createGain(); mg.gain.setValueAtTime(0.45,t); mg.gain.exponentialRampToValueAtTime(0.001,t+1.1);
-  dist.connect(mg); mg.connect(audioCtx.destination);
+  const di=audioCtx.createWaveShaper(); di.curve=dc(100); di.oversample='4x';
+  const mg=audioCtx.createGain(); mg.gain.setValueAtTime(.45,t); mg.gain.exponentialRampToValueAtTime(.001,t+1.1);
+  di.connect(mg); mg.connect(audioCtx.destination);
   const lfo=audioCtx.createOscillator(); lfo.frequency.value=10;
   const lg=audioCtx.createGain(); lg.gain.value=25; lfo.connect(lg); lfo.start(t); lfo.stop(t+1.2);
-  const o1=audioCtx.createOscillator(); o1.type='sawtooth';
-  o1.frequency.setValueAtTime(850,t); o1.frequency.exponentialRampToValueAtTime(160,t+1.0);
-  lg.connect(o1.frequency); o1.connect(dist); o1.start(t); o1.stop(t+1.1);
-  const o2=audioCtx.createOscillator(); o2.type='square';
-  o2.frequency.setValueAtTime(1100,t); o2.frequency.exponentialRampToValueAtTime(220,t+0.9);
-  const g2=audioCtx.createGain(); g2.gain.setValueAtTime(0.12,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.9);
-  o2.connect(g2); g2.connect(audioCtx.destination); o2.start(t); o2.stop(t+1.0);
+  const o1=audioCtx.createOscillator(); o1.type='sawtooth'; o1.frequency.setValueAtTime(850,t); o1.frequency.exponentialRampToValueAtTime(160,t+1); lg.connect(o1.frequency); o1.connect(di); o1.start(t); o1.stop(t+1.1);
+  const o2=audioCtx.createOscillator(); o2.type='square'; o2.frequency.setValueAtTime(1100,t); o2.frequency.exponentialRampToValueAtTime(220,t+.9);
+  const g2=audioCtx.createGain(); g2.gain.setValueAtTime(.12,t); g2.gain.exponentialRampToValueAtTime(.001,t+.9); o2.connect(g2); g2.connect(audioCtx.destination); o2.start(t); o2.stop(t+1);
 }
 
-// ── GAME LOOP ─────────────────────────────────────────────────────────────────
-function loop() {
-  update();
-  draw();
-  if (screamTimer > 0) {
-    screamTimer--;
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, screamTimer/20);
-    const sc = 1 + (75-screamTimer)/75*0.6;
-    ctx.font = `bold ${Math.floor(50*sc)}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
-    ctx.fillStyle = '#ff2222';
-    ctx.strokeText(screamText, W/2, H/2-55);
-    ctx.fillText(screamText, W/2, H/2-55);
+// ─── LOOP ─────────────────────────────────────────────────────────────────────
+function loop(){
+  update(); draw();
+  if(screamT>0){
+    screamT--;
+    ctx.save(); ctx.globalAlpha=Math.min(1,screamT/20);
+    const sc=1+(75-screamT)/75*.6;
+    ctx.font=`bold ${Math.floor(50*sc)}px Arial`; ctx.textAlign='center';
+    ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.fillStyle='#ff2222';
+    ctx.strokeText(screamTxt,W/2,H/2-55); ctx.fillText(screamTxt,W/2,H/2-55);
     ctx.restore();
   }
   requestAnimationFrame(loop);
 }
 
-// Boot
-stage=0; camera={x:0}; deaths=0; gameState='menu';
-initPlayer();
-document.getElementById('startBtn').onclick = () => {
+// boot
+stage=0; camera={x:0}; gameState='menu'; initPlayer();
+document.getElementById('startBtn').onclick=()=>{
   document.getElementById('overlay').style.display='none';
   initAudio(); init(); gameState='playing';
 };
